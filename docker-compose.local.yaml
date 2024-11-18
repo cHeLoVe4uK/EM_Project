@@ -1,0 +1,12 @@
+services:
+
+  chat-srv:
+    container_name: chat_service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports: 
+      - 9000:9000
+    env_file:
+      - path: .env
+        required: false
