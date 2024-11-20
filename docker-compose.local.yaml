@@ -7,6 +7,21 @@ services:
       dockerfile: Dockerfile
     ports: 
       - 9000:9000
+    depends_on:
+      - mongo
     env_file:
       - path: .env
         required: false
+
+  mongo:
+    container_name: mongo_db
+    image: mongo
+    environment:
+      - MONGO_INITDB_DATABASE=$MONGO_DB
+      - MONGO_INITDB_ROOT_USERNAME=$MONGO_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGO_PASSWORD
+    ports:
+      - "$MONGO_HOST_PORT:$MONGO_CONTAINER_PORT"
+    healthcheck:
+      test: test $$(echo "rs.initiate().ok" | mongosh -u $MONGO_USER -p $MONGO_PASSWORD --quiet) -eq 1 || exit 0      
+      interval: 5s
