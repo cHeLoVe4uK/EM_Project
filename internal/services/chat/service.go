@@ -10,20 +10,22 @@ import (
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
-	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
+
 	"github.com/gorilla/websocket"
 )
 
 var (
-	ErrChatNotFound       = errors.New("room not found")
-	ErrChatClosed         = errors.New("room closed")
+	ErrRoomClosed = errors.New("room closed")
+
+	ErrChatNotFound      = errors.New("room not found")
+	ErrChatClosed        = errors.New("room closed")
+	ErrChatAlreadyActive = errors.New("chat already active")
+	ErrChatAlreadyExists = errors.New("chat already exists")
+
 	ErrClientNotAvailable = errors.New("client not available")
-	ErrChatAlreadyActive  = errors.New("chat already active")
-	ErrChatAlreadyExists  = errors.New("chat already exists")
 )
 
 var upgrader = websocket.Upgrader{
-
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
@@ -128,13 +130,11 @@ func (s *Service) ConnectByID(
 
 	room.Add(client)
 
-	client.Chat = room
-
 	slog.Debug(
 		"starting session",
 	)
 
-	return client.StartSession(r.Context(), client.conn)
+	return client.StartSession(r.Context(), client.conn, room)
 }
 
 func (s *Service) connect(

@@ -21,9 +21,9 @@ type Room struct {
 }
 
 type RoomManger struct {
-	Add     chan *Client
-	slogout chan *Client
-	Kick    chan *Client
+	Add    chan *Client
+	Logout chan *Client
+	Kick   chan *Client
 }
 
 func (s *Service) newRoom(chat models.Chat) *Room {
@@ -31,11 +31,12 @@ func (s *Service) newRoom(chat models.Chat) *Room {
 		Chat:       chat,
 		Users:      map[*Client]bool{},
 		Broadcast:  make(chan *MessageDTO, 100),
+		History:    [100]MessageDTO{},
 		msgService: s.msgService,
 		Manager: &RoomManger{
-			Add:     make(chan *Client),
-			slogout: make(chan *Client),
-			Kick:    make(chan *Client),
+			Add:    make(chan *Client),
+			Logout: make(chan *Client),
+			Kick:   make(chan *Client),
 		},
 	}
 }
@@ -47,13 +48,63 @@ func (r *Room) Run(ctx context.Context) {
 
 	for {
 		select {
+		case <-ctx.Done():
+
+			slog.Info(
+				"closing room",
+			)
+			for client := range r.Users {
+
+				slog.Debug(
+					"close connection",
+					slog.String("client_id", client.ID),
+				)
+
+				// TODO: Find better way to close connection
+
+				r.Manager.Logout <- client
+
+				// Is it good??
+				client.conn.Close()
+
+			}
+
+			// TODO: Save all undelivered msges
+
+			// TODO: Save users state for chat to repo
+
+			return
+
 		case client := <-r.Manager.Add:
+
+			slog.Info(
+				"client joined room",
+				slog.String("client_id", client.ID),
+				slog.String("username", client.Username),
+			)
+
 			r.Add(client)
-		case client := <-r.Manager.slogout:
-			r.slogout(client)
+		case client := <-r.Manager.Logout:
+
+			slog.Info(
+				"client left room",
+				slog.String("client_id", client.ID),
+				slog.String("username", client.Username),
+			)
+
+			r.Logout(client)
 		case client := <-r.Manager.Kick:
+
+			slog.Info(
+				"client kicked from room",
+				slog.String("client_id", client.ID),
+				slog.String("username", client.Username),
+			)
+
 			r.Kick(client)
 		case msg := <-r.Broadcast:
+
+			// TODO: Add to history
 
 			for c, ok := range r.Users {
 				slog.With(
@@ -66,7 +117,19 @@ func (r *Room) Run(ctx context.Context) {
 						slog.Any("message", msg),
 					)
 
-					c.recieve <- msg.Render()
+					go func() {
+
+						data, err := msg.Render()
+						if err != nil {
+							slog.Warn(
+								"failed to render message",
+								slog.Any("error", err),
+							)
+							return
+						}
+
+						c.recieve <- data
+					}()
 					continue
 				}
 
@@ -88,7 +151,7 @@ func (r *Room) Add(client *Client) {
 	r.mu.Unlock()
 }
 
-func (r *Room) slogout(client *Client) {
+func (r *Room) Logout(client *Client) {
 	r.mu.Lock()
 	r.Users[client] = false
 	r.mu.Unlock()

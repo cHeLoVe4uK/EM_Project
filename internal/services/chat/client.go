@@ -119,7 +119,7 @@ func (c *Client) write() error {
 			break
 		}
 
-		msg := &Message{}
+		msg := &MessageDTO{}
 
 		reader := bytes.NewReader(text)
 		decoder := json.NewDecoder(reader)
@@ -127,7 +127,7 @@ func (c *Client) write() error {
 		if err != nil {
 		}
 
-		c.ChatRoom.Broadcast <- NewMessage(c, msg.Text)
+		c.ChatRoom.Broadcast <- NewMessage(c, msg.Content)
 	}
 
 	return nil
