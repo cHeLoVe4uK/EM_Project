@@ -51,7 +51,9 @@ type Service struct {
 	ActiveChats map[string]*Room
 	msgService  MessageService
 	chatRepo    ChatRepository
-	mu          sync.RWMutex
+
+	ctx context.Context
+	mu  sync.RWMutex
 }
 
 func NewService(
@@ -60,12 +62,19 @@ func NewService(
 	chatRepo ChatRepository,
 ) *Service {
 
-	return &Service{
+	ctx, cancel := context.WithCancel(ctx)
+
+	s := &Service{
 		ActiveChats: map[string]*Room{},
 		msgService:  msgService,
 		chatRepo:    chatRepo,
+		ctx:         ctx,
 		mu:          sync.RWMutex{},
 	}
+
+	go s.stop(cancel)
+
+	return s
 }
 
 func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
@@ -77,6 +86,8 @@ func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, err
 
 	room := s.newRoom(chat)
 	s.ActiveChats[chatID] = room
+
+	go room.Run(s.ctx)
 
 	return chatID, nil
 }
@@ -148,4 +159,15 @@ func (s *Service) connect(
 	client.addConnection(conn)
 
 	return nil
+}
+
+func (s *Service) stop(cancel context.CancelFunc) {
+
+	select {
+	case <-s.ctx.Done():
+
+		cancel()
+
+		return
+	}
 }
