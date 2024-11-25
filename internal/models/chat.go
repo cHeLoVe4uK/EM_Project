@@ -11,8 +11,8 @@ var (
 )
 
 type Chat struct {
-	ID   string
-	Name string
+	ID   string `bson:"_id"`
+	Name string `bson:"name"`
 }
 
 func NewChat(name string) (Chat, error) {
