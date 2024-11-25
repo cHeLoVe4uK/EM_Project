@@ -68,6 +68,12 @@ func (c *Client) read() error {
 		ticker.Stop()
 	}()
 
+	slog.With(
+		slog.String("client_id", c.ID),
+		slog.String("username", c.Username),
+		slog.String("room_id", c.ChatRoom.ID),
+	)
+
 	for {
 		select {
 		case msg, ok := <-c.recieve:
@@ -82,19 +88,48 @@ func (c *Client) read() error {
 				return fmt.Errorf("next writer: %v", err)
 			}
 
-			w.Write(msg)
+			_, err = w.Write(msg)
+			if err != nil {
+
+				slog.Error(
+					"writing message",
+					slog.Any("error", err),
+				)
+				continue
+			}
 
 			n := len(c.recieve)
 			for i := 0; i < n; i++ {
-				w.Write(msg)
+				_, err = w.Write(msg)
+				if err != nil {
+
+					slog.Error(
+						"writing message",
+						slog.Any("error", err),
+					)
+
+					break
+				}
+
 			}
 
 			if err := w.Close(); err != nil {
+
+				slog.Error(
+					"close writer",
+					slog.Any("error", err),
+				)
+
 				return fmt.Errorf("close writer: %v", err)
 			}
 
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+
+			slog.Debug(
+				"ping client",
+			)
+
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return ErrClientNotAvailable
 			}
@@ -111,9 +146,22 @@ func (c *Client) write() error {
 		return nil
 	})
 
+	slog.With(
+		slog.String("client_id", c.ID),
+		slog.String("username", c.Username),
+		slog.String("room_id", c.ChatRoom.ID),
+	)
+
 	for {
+
 		_, text, err := c.conn.ReadMessage()
 		if err != nil {
+
+			slog.Error(
+				"read message",
+				slog.Any("error", err),
+			)
+
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 			}
 			break
@@ -125,6 +173,10 @@ func (c *Client) write() error {
 		decoder := json.NewDecoder(reader)
 		err = decoder.Decode(msg)
 		if err != nil {
+			slog.Warn(
+				"decoding message",
+				slog.Any("error", err),
+			)
 		}
 
 		c.ChatRoom.Broadcast <- NewMessage(c, msg.Content)
