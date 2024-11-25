@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/ydb-platform/ydb-go-sdk/v3/log"
 )
 
 type Room struct {
@@ -104,6 +105,21 @@ func (r *Room) Run(ctx context.Context) {
 			r.Kick(client)
 		case msg := <-r.Broadcast:
 
+			slog.Debug(
+				"render message",
+				slog.Any("message", msg),
+			)
+
+			data, err := msg.Render()
+			if err != nil {
+				slog.Error(
+					"failed to render message",
+					slog.Any("error", err),
+				)
+
+				continue
+			}
+
 			// TODO: Add to history
 
 			for c, ok := range r.Users {
@@ -114,21 +130,12 @@ func (r *Room) Run(ctx context.Context) {
 
 					slog.Debug(
 						"sending message",
-						slog.Any("message", msg),
 					)
 
 					go func() {
 
-						data, err := msg.Render()
-						if err != nil {
-							slog.Warn(
-								"failed to render message",
-								slog.Any("error", err),
-							)
-							return
-						}
-
 						c.recieve <- data
+
 					}()
 					continue
 				}
