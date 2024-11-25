@@ -39,7 +39,7 @@ func (us *UserService) Register(ctx context.Context, u *models.User) error {
 // Обновление пользователя
 func (us *UserService) UpdateUser(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	err := us.userRepo.CheckUserByID(ctx, u.Username)
+	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (us *UserService) UpdateUser(ctx context.Context, u *models.User) error {
 // Удаление пользователя
 func (us *UserService) DeleteUser(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	err := us.userRepo.CheckUserByID(ctx, u.Username)
+	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
 		return err
 	}

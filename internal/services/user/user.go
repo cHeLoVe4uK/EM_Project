@@ -7,11 +7,11 @@ import (
 )
 
 type UserRepo interface {
-	CreateUser(context.Context, *models.User) error
-	UpdateUser(context.Context, *models.User) error
-	DeleteUser(context.Context, *models.User) error
-	CheckUserByEmail(context.Context, string) (*models.User, error)
-	CheckUserByID(context.Context, string) error
+	CreateUser(ctx context.Context, user *models.User) error
+	UpdateUser(ctx context.Context, user *models.User) error
+	DeleteUser(ctx context.Context, user *models.User) error
+	CheckUserByEmail(ctx context.Context, email string) (*models.User, error)
+	CheckUserByID(ctx context.Context, userID string) error
 }
 
 type AuthService interface {
