@@ -42,11 +42,8 @@ type MessageService interface {
 
 type ChatRepository interface {
 	GetChatByID(ctx context.Context, chatID string) (models.Chat, error)
-
 	CreateChat(ctx context.Context, chat models.Chat) (string, error)
-
 	UpdateChat(ctx context.Context, chat models.Chat) error
-
 	DeleteChat(ctx context.Context, chatID string) error
 }
 

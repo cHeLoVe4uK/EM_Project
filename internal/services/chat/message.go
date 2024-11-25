@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 type MessageDTO struct {
@@ -18,7 +18,7 @@ type MessageDTO struct {
 
 func NewMessage(client *Client, text string) *MessageDTO {
 	return &MessageDTO{
-		ID:        primitive.NilObjectID.String(),
+		ID:        uuid.NewString(),
 		Author:    client.ID,
 		ChatID:    client.ChatRoom.ID,
 		Content:   text,
@@ -28,9 +28,11 @@ func NewMessage(client *Client, text string) *MessageDTO {
 }
 
 func (msg *MessageDTO) Render() ([]byte, error) {
+
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }

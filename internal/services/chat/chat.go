@@ -6,12 +6,13 @@ import (
 	"sync"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
-	"github.com/ydb-platform/ydb-go-sdk/v3/log"
 )
 
 type Room struct {
 	models.Chat
-	Users map[*Client]bool
+
+	ActiveUsers map[*Client]struct{}
+	Users       map[string]bool
 
 	Broadcast chan *MessageDTO
 	History   [100]MessageDTO
@@ -29,11 +30,12 @@ type RoomManger struct {
 
 func (s *Service) newRoom(chat models.Chat) *Room {
 	return &Room{
-		Chat:       chat,
-		Users:      map[*Client]bool{},
-		Broadcast:  make(chan *MessageDTO, 100),
-		History:    [100]MessageDTO{},
-		msgService: s.msgService,
+		Chat:        chat,
+		ActiveUsers: make(map[*Client]struct{}),
+		Users:       make(map[string]bool),
+		Broadcast:   make(chan *MessageDTO, 100),
+		History:     [100]MessageDTO{},
+		msgService:  s.msgService,
 		Manager: &RoomManger{
 			Add:    make(chan *Client),
 			Logout: make(chan *Client),
@@ -43,6 +45,7 @@ func (s *Service) newRoom(chat models.Chat) *Room {
 }
 
 func (r *Room) Run(ctx context.Context) {
+
 	slog.With(
 		slog.String("room_id", r.ID),
 	)
@@ -54,7 +57,7 @@ func (r *Room) Run(ctx context.Context) {
 			slog.Info(
 				"closing room",
 			)
-			for client := range r.Users {
+			for client := range r.ActiveUsers {
 
 				slog.Debug(
 					"close connection",
@@ -63,7 +66,7 @@ func (r *Room) Run(ctx context.Context) {
 
 				// TODO: Find better way to close connection
 
-				r.Manager.Logout <- client
+				r.Manager.Kick <- client
 
 				// Is it good??
 				client.conn.Close()
@@ -120,32 +123,22 @@ func (r *Room) Run(ctx context.Context) {
 				continue
 			}
 
-			// TODO: Add to history
+			// TODO: Add to History
 
-			for c, ok := range r.Users {
+			for c := range r.ActiveUsers {
 				slog.With(
 					slog.String("client_id", c.ID),
 				)
-				if ok {
 
-					slog.Debug(
-						"sending message",
-					)
-
-					go func() {
-
-						c.recieve <- data
-
-					}()
-					continue
-				}
-
-				slog.Info(
-					"client left room",
+				slog.Debug(
+					"sending message",
 				)
 
-				delete(r.Users, c)
-				close(c.recieve)
+				go func() {
+
+					c.recieve <- data
+
+				}()
 			}
 		}
 
@@ -154,18 +147,18 @@ func (r *Room) Run(ctx context.Context) {
 
 func (r *Room) Add(client *Client) {
 	r.mu.Lock()
-	r.Users[client] = true
+	r.ActiveUsers[client] = struct{}{}
 	r.mu.Unlock()
 }
 
 func (r *Room) Logout(client *Client) {
 	r.mu.Lock()
-	r.Users[client] = false
+	delete(r.ActiveUsers, client)
 	r.mu.Unlock()
 }
 
 func (r *Room) Kick(client *Client) {
 	r.mu.Lock()
-	delete(r.Users, client)
+	delete(r.ActiveUsers, client)
 	r.mu.Unlock()
 }
