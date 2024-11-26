@@ -2,17 +2,18 @@ package user
 
 import "github.com/cHeLoVe4uK/EM_Project/internal/models"
 
+// Вход пользователя
 func (us *UserService) Login(u *models.User) (string, string, error) {
-	// Для начала нужно проверить есть ли пользователь в БД
+	// Проверка наличия пользователя в БД
 	ok, err := us.userRepo.CheckUserByID(u.ID)
 	if err != nil {
 		return "", "", err
 	}
 	if !ok {
-		return "", "", UserNotFound
+		return "", "", ErrUserNotFound
 	}
 
-	// Если есть нужно выбить для пользователя токены
+	// Если есть выбиваем токены
 	accessToken, refreshToken, err := us.authService.GetTokens(u)
 	if err != nil {
 		return "", "", err
