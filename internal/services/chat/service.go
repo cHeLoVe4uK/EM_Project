@@ -142,7 +142,12 @@ func (s *Service) ConnectByID(
 		"starting session",
 	)
 
-	return client.StartSession(r.Context(), client.conn, room)
+	if err := client.StartSession(r.Context(), client.conn, room); err != nil {
+		room.Kick(client)
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) connect(

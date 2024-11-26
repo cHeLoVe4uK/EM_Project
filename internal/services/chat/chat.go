@@ -4,8 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type Room struct {
@@ -16,7 +19,8 @@ type Room struct {
 
 	Broadcast chan *MessageDTO
 	History   [100]MessageDTO
-	Manager   *RoomManger
+
+	Manager *RoomManger
 
 	msgService MessageService
 	mu         sync.RWMutex
@@ -57,6 +61,24 @@ func (r *Room) Run(ctx context.Context) {
 			slog.Info(
 				"closing room",
 			)
+
+			systemMsg := MessageDTO{
+				ID:        uuid.NewString(),
+				Author:    "System",
+				ChatID:    r.ID,
+				Content:   "Room closed",
+				IsEdited:  false,
+				Timestamp: time.Now(),
+			}
+
+			data, err := systemMsg.Render()
+			if err != nil {
+				slog.Warn(
+					"render system message",
+					slog.Any("error", err),
+				)
+			}
+
 			for client := range r.ActiveUsers {
 
 				slog.Debug(
@@ -64,12 +86,22 @@ func (r *Room) Run(ctx context.Context) {
 					slog.String("client_id", client.ID),
 				)
 
-				// TODO: Find better way to close connection
-
 				r.Manager.Kick <- client
 
-				// Is it good??
-				client.conn.Close()
+				go func() {
+
+					defer func() {
+						if err := client.conn.Close(); err != nil {
+							slog.Error(
+								"failed to close connection",
+								slog.Any("error", err),
+							)
+						}
+					}()
+
+					client.recieve <- data
+
+				}()
 
 			}
 
@@ -123,20 +155,28 @@ func (r *Room) Run(ctx context.Context) {
 				continue
 			}
 
+			pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
+			if err != nil {
+				slog.Error(
+					"failed to prepare message",
+					slog.Any("error", err),
+				)
+
+				continue
+			}
+
 			// TODO: Add to History
 
 			for c := range r.ActiveUsers {
-				slog.With(
-					slog.String("client_id", c.ID),
-				)
-
-				slog.Debug(
-					"sending message",
-				)
 
 				go func() {
 
-					c.recieve <- data
+					if err := c.Send(pm); err != nil {
+						slog.Error(
+							"failed to send message",
+							slog.Any("error", err),
+						)
+					}
 
 				}()
 			}
@@ -153,6 +193,7 @@ func (r *Room) Add(client *Client) {
 
 func (r *Room) Logout(client *Client) {
 	r.mu.Lock()
+
 	delete(r.ActiveUsers, client)
 	r.mu.Unlock()
 }

@@ -19,19 +19,20 @@ type Client struct {
 	ChatRoom *Room
 
 	conn    *websocket.Conn
-	recieve chan []byte
+	recieve chan []*websocket.PreparedMessage
 }
 
 func NewClient(user models.User) *Client {
 	return &Client{
 		User:    user,
-		recieve: make(chan []byte),
+		recieve: make(chan []*websocket.PreparedMessage),
 	}
 }
 
 func (c *Client) StartSession(ctx context.Context, conn *websocket.Conn, room *Room) error {
 	defer func() {
 		c.conn.Close()
+		c.conn = nil
 	}()
 
 	slog.Info(
@@ -76,51 +77,19 @@ func (c *Client) read() error {
 
 	for {
 		select {
-		case msg, ok := <-c.recieve:
+		case msgs, ok := <-c.recieve:
+
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return ErrRoomClosed
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return fmt.Errorf("next writer: %v", err)
-			}
-
-			_, err = w.Write(msg)
-			if err != nil {
-
-				slog.Error(
-					"writing message",
-					slog.Any("error", err),
-				)
-				continue
-			}
-
-			n := len(c.recieve)
-			for i := 0; i < n; i++ {
-				_, err = w.Write(msg)
-				if err != nil {
-
-					slog.Error(
-						"writing message",
-						slog.Any("error", err),
-					)
-
-					break
+			for _, msg := range msgs {
+				if err := c.conn.WritePreparedMessage(msg); err != nil {
+					return fmt.Errorf("write message: %w", err)
 				}
-
-			}
-
-			if err := w.Close(); err != nil {
-
-				slog.Error(
-					"close writer",
-					slog.Any("error", err),
-				)
-
-				return fmt.Errorf("close writer: %v", err)
 			}
 
 		case <-ticker.C:
@@ -183,4 +152,30 @@ func (c *Client) write() error {
 	}
 
 	return nil
+}
+
+func (c *Client) Send(msg *websocket.PreparedMessage) error {
+	if c.conn == nil {
+		return ErrClientNotAvailable
+	}
+
+	c.recieve <- []*websocket.PreparedMessage{msg}
+
+	return nil
+}
+
+func (c *Client) SendBatch(msgs []*websocket.PreparedMessage) error {
+	if c.conn == nil {
+		return ErrClientNotAvailable
+	}
+
+	c.recieve <- msgs
+
+	return nil
+}
+
+func (c *Client) Close() {
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
