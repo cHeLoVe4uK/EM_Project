@@ -31,6 +31,7 @@ var upgrader = websocket.Upgrader{
 }
 
 const (
+	closeCheck     = 60 * time.Minute
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
@@ -167,6 +168,8 @@ func (s *Service) connect(
 }
 
 func (s *Service) stop(cancel context.CancelFunc) {
+	t := time.NewTicker(closeCheck)
+	defer t.Stop()
 
 	select {
 	case <-s.ctx.Done():
@@ -174,5 +177,11 @@ func (s *Service) stop(cancel context.CancelFunc) {
 		cancel()
 
 		return
+	case <-t.C:
+		for _, r := range s.ActiveChats {
+			if len(r.ActiveUsers) == 0 {
+				r.Manager.Close <- struct{}{}
+			}
+		}
 	}
 }

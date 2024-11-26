@@ -30,6 +30,8 @@ type RoomManger struct {
 	Add    chan *Client
 	Logout chan *Client
 	Kick   chan *Client
+
+	Close chan struct{}
 }
 
 func (s *Service) newRoom(chat models.Chat) *Room {
@@ -44,6 +46,7 @@ func (s *Service) newRoom(chat models.Chat) *Room {
 			Add:    make(chan *Client),
 			Logout: make(chan *Client),
 			Kick:   make(chan *Client),
+			Close:  make(chan struct{}),
 		},
 	}
 }
@@ -58,59 +61,14 @@ func (r *Room) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 
-			slog.Info(
-				"closing room",
-			)
-
-			systemMsg := MessageDTO{
-				ID:        uuid.NewString(),
-				Author:    "System",
-				ChatID:    r.ID,
-				Content:   "Room closed",
-				IsEdited:  false,
-				Timestamp: time.Now(),
-			}
-
-			data, err := systemMsg.Render()
-			if err != nil {
-				slog.Warn(
-					"render system message",
-					slog.Any("error", err),
-				)
-			}
-
-			for client := range r.ActiveUsers {
-
-				slog.Debug(
-					"close connection",
-					slog.String("client_id", client.ID),
-				)
-
-				r.Manager.Kick <- client
-
-				go func() {
-
-					defer func() {
-						if err := client.conn.Close(); err != nil {
-							slog.Error(
-								"failed to close connection",
-								slog.Any("error", err),
-							)
-						}
-					}()
-
-					client.recieve <- data
-
-				}()
-
-			}
-
-			// TODO: Save all undelivered msges
-
-			// TODO: Save users state for chat to repo
+			r.Stop()
 
 			return
+		case <-r.Manager.Close:
 
+			r.Stop()
+
+			return
 		case client := <-r.Manager.Add:
 
 			slog.Info(
@@ -202,4 +160,68 @@ func (r *Room) Kick(client *Client) {
 	r.mu.Lock()
 	delete(r.ActiveUsers, client)
 	r.mu.Unlock()
+}
+
+func (r *Room) Stop() {
+
+	slog.Info(
+		"closing room",
+	)
+
+	systemMsg := MessageDTO{
+		ID:        uuid.NewString(),
+		Author:    "System",
+		ChatID:    r.ID,
+		Content:   "Room closed",
+		IsEdited:  false,
+		Timestamp: time.Now(),
+	}
+
+	data, err := systemMsg.Render()
+	if err != nil {
+		slog.Warn(
+			"render system message",
+			slog.Any("error", err),
+		)
+	}
+
+	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
+	if err != nil {
+		slog.Warn(
+			"prepare system message",
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	for client := range r.ActiveUsers {
+
+		slog.Debug(
+			"close connection",
+			slog.String("client_id", client.ID),
+		)
+
+		r.Manager.Kick <- client
+
+		go func() {
+
+			defer func() {
+				if err := client.conn.Close(); err != nil {
+					slog.Error(
+						"failed to close connection",
+						slog.Any("error", err),
+					)
+				}
+			}()
+
+			client.Send(pm)
+
+		}()
+
+	}
+
+	// TODO: Save all undelivered msges
+
+	// TODO: Save users state for chat to repo
+
 }
