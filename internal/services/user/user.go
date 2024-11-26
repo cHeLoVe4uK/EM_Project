@@ -1,14 +1,17 @@
 package user
 
 import (
+	"context"
+
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
 type UserRepo interface {
-	Create(*models.User) error
-	Update(*models.User) error
-	Delete(*models.User) error
-	CheckUserByID(string) (bool, error)
+	CreateUser(context.Context, *models.User) error
+	UpdateUser(context.Context, *models.User) error
+	DeleteUser(context.Context, *models.User) error
+	CheckUserByUsername(context.Context, string) (bool, error)
+	CheckUserByID(context.Context, string) (bool, error)
 }
 
 type AuthService interface {
