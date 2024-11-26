@@ -171,16 +171,18 @@ func (s *Service) stop(cancel context.CancelFunc) {
 	t := time.NewTicker(closeCheck)
 	defer t.Stop()
 
-	select {
-	case <-s.ctx.Done():
+	for {
+		select {
+		case <-s.ctx.Done():
 
-		cancel()
+			cancel()
 
-		return
-	case <-t.C:
-		for _, r := range s.ActiveChats {
-			if len(r.ActiveUsers) == 0 {
-				r.Manager.Close <- struct{}{}
+			return
+		case <-t.C:
+			for _, r := range s.ActiveChats {
+				if len(r.ActiveUsers) == 0 {
+					r.Manager.Close <- struct{}{}
+				}
 			}
 		}
 	}
