@@ -60,7 +60,7 @@ func (us *UserService) DeleteUser(ctx context.Context, u *models.User) error {
 	}
 
 	// Если найден удаляем
-	err = us.userRepo.DeleteUser(ctx, u)
+	err = us.userRepo.DeleteUser(ctx, u.ID)
 	if err != nil {
 		return err
 	}
