@@ -52,16 +52,19 @@ func (r *UsersRepo) UpdateUser(ctx context.Context, user *models.User) error {
 
 func (r *UsersRepo) DeleteUser(ctx context.Context, userID string) error {
 	objectID, _ := primitive.ObjectIDFromHex(userID)
-	res, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
-	if err != nil {
-		return err
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	return err
+}
+
+func (r *UsersRepo) CheckUserByUsername(ctx context.Context, name string) (bool, error) {
+	if err := r.collection.FindOne(ctx, bson.M{"username": name}).Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
 	}
 
-	if res.DeletedCount == 0 {
-		return ErrUserNotFound
-	}
-
-	return nil
+	return true, nil
 }
 
 func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) (bool, error) {

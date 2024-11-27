@@ -15,7 +15,7 @@ var (
 // Вход пользователя
 func (us *UserService) Login(ctx context.Context, u *models.User) (*models.Token, error) {
 	// Проверка наличия пользователя в БД
-	user, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
+	user, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +35,6 @@ func (us *UserService) Login(ctx context.Context, u *models.User) (*models.Token
 }
 
 // Пока непонятно что тут будет происходить
-func (us *UserService) Logout(u *models.User) error {
+func (us *UserService) Logout(ctx context.Context, u *models.User) error {
 	return nil
 }
