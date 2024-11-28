@@ -7,6 +7,15 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
+//	@Summary		Create New User
+//	@Description	Creates nes User, return his ID
+//	@Tags			Users
+//	@Produce		json
+//	@Param			user	body		CreateUserRequest	true	"User data"
+//	@Success		201		{object}	CreateUserResponse
+//	@Failure		422		{object}	object
+//	@Failure		500		{object}	object
+//	@Router			/api/v1/users [post]
 func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateUserRequest
@@ -49,6 +58,15 @@ func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+//	@Summary		Create New User
+//	@Description	Creates nes User, return his ID
+//	@Tags			Users
+//	@Produce		json
+//	@Param			user	body		LoginUserRequest	true	"User login data"
+//	@Success		200		{object}	LoginUserResponse
+//	@Failure		422		{object}	object
+//	@Failure		500		{object}	object
+//	@Router			/api/v1/users/login [post]
 func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	var req LoginUserRequest

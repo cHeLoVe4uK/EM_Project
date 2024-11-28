@@ -8,21 +8,16 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
-func (a *API) GetChats(w http.ResponseWriter, r *http.Request) {
-
-}
-
-// createChat godoc
-// @Tags         Chat API
-// @Summary      Create chat
-// @Description  Create chat
-// @Accept       json
-// @Produce      json
-// @Param Audio body CreateChatRequest true "Chat name"
-// @Success      200  {object}  CreateChatResponse
-// @Failure      400  {object}  ErrResponse
-// @Failure      500  {object}	ErrResponse
-// @Router       /api/v1/chats [post]
+//	@Summary		Create chat
+//	@Description	Creates new chat, runs in background and returns chat ID
+//	@Tags			Chats
+//	@Accept			json
+//	@Produce		json
+//	@Param			chat	body		CreateChatRequest	true	"Chat name"
+//	@Success		200		{object}	CreateChatResponse
+//	@Failure		400		{object}	object
+//	@Failure		500		{object}	object
+//	@Router			/api/v1/chats [post]
 func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateChatRequest

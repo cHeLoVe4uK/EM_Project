@@ -15,8 +15,9 @@ func (a *API) routes() *chi.Mux {
 
 		r.Route("/chats", func(r chi.Router) {
 
-			r.Get("/", a.GetChats)
 			r.Post("/", a.CreateChat)
+
+			r.Get("/connect", a.ConnectChat)
 
 		})
 

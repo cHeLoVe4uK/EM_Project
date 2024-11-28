@@ -10,7 +10,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func (a *API) WebSocket(w http.ResponseWriter, r *http.Request) {
+// @Summary		Upgrade http connection
+// @Description	Upgrades http connection to websocket
+// @Tags			Chats
+// @Produce		json
+// @Param			chat body		JoinChatRequest	true	"Chat data"
+// @Failure		422		{object}	object
+// @Failure		500		{object}	object
+// @Router			/api/v1/chats/connect [get]
+func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
 
 	var req JoinChatRequest
 
@@ -20,6 +28,8 @@ func (a *API) WebSocket(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+
+	// Get username from cookie
 
 	username := gofakeit.Username()
 
