@@ -11,7 +11,7 @@ var (
 )
 
 type Chat struct {
-	ID   string `bson:"_id"`
+	ID   string `bson:"_id,omitempty"`
 	Name string `bson:"name"`
 }
 
