@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/google/uuid"
 
 	"github.com/gorilla/websocket"
 )
@@ -80,15 +81,33 @@ func NewService(
 
 func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
 
+	slog.Debug(
+		"creating chat",
+	)
+
+	chat.ID = uuid.New().String()
+
 	chatID, err := s.chatRepo.CreateChat(ctx, chat)
 	if err != nil {
 		return "", err
 	}
 
+	slog.With(
+		slog.String("chat_id", chatID),
+	)
+
+	slog.Debug(
+		"creating room",
+	)
+
 	room := s.newRoom(chat)
 	s.ActiveChats[chatID] = room
 
 	go room.Run(s.ctx)
+
+	slog.Debug(
+		"room created",
+	)
 
 	return chatID, nil
 }
