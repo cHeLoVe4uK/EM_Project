@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	_ "github.com/cHeLoVe4uK/EM_Project/api/swagger"
 	"github.com/cHeLoVe4uK/EM_Project/internal/app"
 )
 

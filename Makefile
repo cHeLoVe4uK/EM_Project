@@ -3,6 +3,7 @@ build:
 	@go build -o ./.bin/app ./cmd/app
 
 run:build
+	@echo "Swagger:		http://localhost:8080/swagger/index.html"
 	@./.bin/app
 
 docker:
