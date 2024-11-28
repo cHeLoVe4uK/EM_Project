@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	ErrUserNotFound = errors.New("user with this id not found")
+	ErrInvalidUserID = errors.New("invalid user id")
 )
 
 type UsersRepo struct {
@@ -28,12 +28,15 @@ func NewUsersRepo(db *mongo.Database) *UsersRepo {
 }
 
 func (r *UsersRepo) CreateUser(ctx context.Context, user *models.User) error {
-	_, err := r.collection.InsertOne(ctx, bson.M{"email": user.Email, "username": user.Username, "password": user.Password})
+	_, err := r.collection.InsertOne(ctx, user)
 	return err
 }
 
 func (r *UsersRepo) UpdateUser(ctx context.Context, user *models.User) error {
-	objectID, _ := primitive.ObjectIDFromHex(user.ID)
+	objectID, err := primitive.ObjectIDFromHex(user.ID)
+	if err != nil {
+		return ErrInvalidUserID
+	}
 
 	updateFields := bson.M{}
 	if user.Email != "" {
@@ -46,13 +49,17 @@ func (r *UsersRepo) UpdateUser(ctx context.Context, user *models.User) error {
 		updateFields["password"] = user.Password
 	}
 
-	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateFields})
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateFields})
 	return err
 }
 
 func (r *UsersRepo) DeleteUser(ctx context.Context, userID string) error {
-	objectID, _ := primitive.ObjectIDFromHex(userID)
-	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrInvalidUserID
+	}
+
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
 	return err
 }
 
@@ -68,8 +75,12 @@ func (r *UsersRepo) CheckUserByUsername(ctx context.Context, name string) (bool,
 }
 
 func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) (bool, error) {
-	objectID, _ := primitive.ObjectIDFromHex(userID)
-	if err := r.collection.FindOne(ctx, bson.M{"_id": objectID}).Err(); err != nil {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, ErrInvalidUserID
+	}
+
+	if err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
