@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Button, Input, message } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Input, message, Modal } from "antd";
 import ChatList from "../components/ChatList";
 import MessageList from "../components/MessageList";
 import { useNavigate } from "react-router-dom";
@@ -21,12 +21,15 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
   const navigate = useNavigate();
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch("/api/v1/chat");
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`);
         if (!response.ok) {
           throw new Error("Failed to fetch chats");
         }
@@ -40,51 +43,142 @@ const ChatPage: React.FC = () => {
     fetchChats();
   }, []);
 
+  useEffect(() => {
+    const socket = new WebSocket(`${import.meta.env.VITE_WS_BASE_URL}/ws`);
+    socketRef.current = socket;
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.chat_id === selectedChat) {
+        setMessages((prev) => [...prev, data]);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      message.error("WebSocket connection error");
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [selectedChat]);
+
   const handleSelectChat = (chatId: string) => {
     setSelectedChat(chatId);
-    // Fetch messages for the selected chat
+
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${chatId}/messages`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch messages");
+        }
+        const data = await response.json();
+        setMessages(data);
+      } catch (err: any) {
+        message.error(err.message);
+      }
+    };
+
+    fetchMessages();
   };
 
-  const handleSendMessage = async () => {
-    if (!selectedChat) {
-      message.warning("Please select a chat");
+  const handleSendMessage = () => {
+    if (!selectedChat || !socketRef.current) {
+      message.warning("Please select a chat or check your connection");
+      return;
+    }
+
+    const messageData = {
+      chat_id: selectedChat,
+      text: newMessage,
+      sender: "You",
+    };
+
+    socketRef.current.send(JSON.stringify(messageData));
+
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now().toString(), ...messageData },
+    ]);
+
+    setNewMessage("");
+  };
+
+  const handleCreateChat = async () => {
+    if (!newChatName.trim()) {
+      message.warning("Chat name cannot be empty");
       return;
     }
 
     try {
-      const response = await fetch("/api/v1/message", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: selectedChat, text: newMessage }),
+        body: JSON.stringify({ name: newChatName }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        throw new Error("Failed to create chat");
       }
 
-      setMessages((prev) => [...prev, { id: Date.now().toString(), text: newMessage, sender: "You" }]);
-      setNewMessage("");
+      const newChat = await response.json();
+      setChats((prev) => [...prev, newChat]);
+      message.success("Chat created successfully");
+      setNewChatName("");
+      setIsModalVisible(false);
     } catch (err: any) {
       message.error(err.message);
     }
   };
 
   const handleLogout = () => {
-    // Удаляем токены из cookies
     Cookies.remove("access_token");
     Cookies.remove("refresh_token");
-    // Редирект на страницу авторизации
+    if (socketRef.current) {
+      socketRef.current.close();
+    }
     navigate("/login");
   };
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      <div style={{ flex: 1, borderRight: "1px solid #ccc", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          flex: 1,
+          borderRight: "1px solid #ccc",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+        }}
+      >
         <ChatList chats={chats} onSelectChat={handleSelectChat} />
         <Button
           type="primary"
+          style={{
+            position: "absolute",
+            bottom: "70px",
+            left: "10px",
+            width: "90%",
+          }}
+          onClick={() => setIsModalVisible(true)}
+        >
+          New Chat
+        </Button>
+        <Button
+          type="primary"
           danger
-          style={{ position: "absolute", bottom: "20px", left: "10px", width: "50px" }}
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "10px",
+            width: "90%",
+          }}
           onClick={handleLogout}
         >
           Logout
@@ -106,6 +200,20 @@ const ChatPage: React.FC = () => {
           </Button>
         </div>
       </div>
+      <Modal
+        title="Create New Chat"
+        visible={isModalVisible}
+        onOk={handleCreateChat}
+        onCancel={() => setIsModalVisible(false)}
+        okText="Create"
+        cancelText="Cancel"
+      >
+        <Input
+          value={newChatName}
+          onChange={(e) => setNewChatName(e.target.value)}
+          placeholder="Enter chat name"
+        />
+      </Modal>
     </div>
   );
 };

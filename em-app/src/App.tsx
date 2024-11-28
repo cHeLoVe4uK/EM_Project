@@ -19,3 +19,6 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+// For prod <Route path="/chat" element={<PrivateRoute element={<ChatPage />} />} />
+// For test <Route path="/chat" element={<ChatPage />} />
