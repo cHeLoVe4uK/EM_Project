@@ -1,11 +1,11 @@
 package schemas
 
-type RequestUserLogin struct {
+type RequestLoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type RequestUserRegister struct {
+type RequestRegisterUser struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`

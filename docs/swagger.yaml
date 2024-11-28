@@ -1,0 +1,288 @@
+basePath: /api/v1
+definitions:
+  schemas.RequestConnectToChat:
+    properties:
+      chat_id:
+        type: string
+    type: object
+  schemas.RequestCreateChat:
+    properties:
+      name:
+        type: string
+    type: object
+  schemas.RequestDeleteChat:
+    properties:
+      chat_id:
+        type: string
+    type: object
+  schemas.RequestDeleteMsg:
+    properties:
+      msg_id:
+        type: string
+    type: object
+  schemas.RequestLoginUser:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  schemas.RequestRegisterUser:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  schemas.RequestUpdateMsg:
+    properties:
+      msg_id:
+        type: string
+      text:
+        type: string
+    type: object
+  schemas.ResponseCreateChat:
+    properties:
+      chat_id:
+        type: string
+    type: object
+  v1.ErrResponse:
+    properties:
+      error:
+        type: string
+      msg:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8082
+info:
+  contact: {}
+  description: Messenger.
+  license:
+    name: Apache helicopter
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Messenger service
+  version: "1.0"
+paths:
+  /chat:
+    delete:
+      consumes:
+      - application/json
+      description: Delete chat
+      parameters:
+      - description: Chat ID
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestDeleteChat'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Delete chat
+      tags:
+      - Chat API
+    post:
+      consumes:
+      - application/json
+      description: Create chat
+      parameters:
+      - description: Chat name
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestCreateChat'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseCreateChat'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Create chat
+      tags:
+      - Chat API
+  /chat/connect:
+    post:
+      consumes:
+      - application/json
+      description: Connect to chat
+      parameters:
+      - description: Chat ID
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestConnectToChat'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Connect to chat
+      tags:
+      - Chat API
+  /message:
+    delete:
+      consumes:
+      - application/json
+      description: Delete message
+      parameters:
+      - description: Message ID
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestDeleteMsg'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Delete message
+      tags:
+      - Message API
+    patch:
+      consumes:
+      - application/json
+      description: Update message
+      parameters:
+      - description: Message ID and text
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestUpdateMsg'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Update message
+      tags:
+      - Message API
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: Email and password
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestLoginUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Login
+      tags:
+      - User API
+  /user/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Logout
+      tags:
+      - User API
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: Register
+      parameters:
+      - description: Username, Email, password
+        in: body
+        name: Audio
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.RequestRegisterUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.ErrResponse'
+      summary: Register
+      tags:
+      - User API
+swagger: "2.0"
