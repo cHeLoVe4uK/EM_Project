@@ -81,20 +81,21 @@ func NewService(
 
 func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
 
+	chat.ID = uuid.New().String()
+
+	slog := slog.With(
+		slog.String("chat_id", chat.ID),
+		slog.String("chat_name", chat.Name),
+	)
+
 	slog.Debug(
 		"creating chat",
 	)
-
-	chat.ID = uuid.New().String()
 
 	chatID, err := s.chatRepo.CreateChat(ctx, chat)
 	if err != nil {
 		return "", err
 	}
-
-	slog.With(
-		slog.String("chat_id", chatID),
-	)
 
 	slog.Debug(
 		"creating room",

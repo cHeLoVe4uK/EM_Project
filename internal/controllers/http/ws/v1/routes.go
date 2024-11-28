@@ -11,6 +11,7 @@ func (a *API) routes() *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/api/v1/chats", a.GetChats)
 	r.Post("/api/v1/chats", a.CreateChat)
 
 	r.Get("/ws", a.WebSocket)

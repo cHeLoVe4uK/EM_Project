@@ -8,6 +8,10 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
+func (a *API) GetChats(w http.ResponseWriter, r *http.Request) {
+
+}
+
 // createChat godoc
 // @Tags         Chat API
 // @Summary      Create chat
