@@ -120,7 +120,7 @@ func (s *Service) ConnectByID(
 	user *models.User,
 ) error {
 
-	slog.With(
+	log := slog.With(
 		slog.String("user_id", user.ID),
 		slog.String("username", user.Username),
 		slog.String("chat_id", chatID),
@@ -131,7 +131,7 @@ func (s *Service) ConnectByID(
 		return fmt.Errorf("get chat by id: %w", err)
 	}
 
-	slog.Debug(
+	log.Debug(
 		"upgrading connection",
 	)
 
@@ -141,7 +141,7 @@ func (s *Service) ConnectByID(
 		return err
 	}
 
-	slog.Debug(
+	log.Debug(
 		"adding client to chat",
 	)
 
@@ -151,19 +151,32 @@ func (s *Service) ConnectByID(
 
 	room, ok := s.ActiveChats[chatID]
 	if !ok {
+
+		log.Debug(
+			"creating new room",
+		)
+
 		room = s.newRoom(chat)
 		s.ActiveChats[chatID] = room
+
+		go room.Run(s.ctx)
+
+		log.Debug(
+			"room created",
+		)
 	}
 
 	s.mu.Unlock()
 
 	room.Add(client)
 
-	slog.Debug(
+	log.Debug(
 		"starting session",
 	)
 
-	if err := client.StartSession(r.Context(), client.conn, room); err != nil {
+	client.ChatRoom = room
+
+	if err := client.StartSession(r.Context()); err != nil {
 		room.Kick(client)
 		return err
 	}

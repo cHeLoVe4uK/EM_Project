@@ -29,7 +29,7 @@ func NewClient(user models.User) *Client {
 	}
 }
 
-func (c *Client) StartSession(ctx context.Context, conn *websocket.Conn, room *Room) error {
+func (c *Client) StartSession(ctx context.Context) error {
 	defer func() {
 		c.conn.Close()
 		c.conn = nil

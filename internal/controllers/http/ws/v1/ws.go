@@ -30,13 +30,7 @@ func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ignore for now, just testing
-	cookie, _ := r.Cookie("username")
-
-	username := cookie.Value
-	if username == "" {
-		username = gofakeit.Username()
-	}
+	username := gofakeit.Username()
 
 	user := &models.User{
 		ID:       uuid.New().String(),

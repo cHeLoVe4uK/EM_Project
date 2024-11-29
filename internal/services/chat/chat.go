@@ -71,14 +71,20 @@ func (r *Room) Run(ctx context.Context) {
 			return
 		case client := <-r.Manager.Add:
 
+			r.mu.Lock()
+			r.ActiveUsers[client] = struct{}{}
+			r.mu.Unlock()
+
 			slog.Info(
 				"client joined room",
 				slog.String("client_id", client.ID),
 				slog.String("username", client.Username),
 			)
-
-			r.Add(client)
 		case client := <-r.Manager.Logout:
+
+			r.mu.Lock()
+			delete(r.ActiveUsers, client)
+			r.mu.Unlock()
 
 			slog.Info(
 				"client left room",
@@ -86,8 +92,11 @@ func (r *Room) Run(ctx context.Context) {
 				slog.String("username", client.Username),
 			)
 
-			r.Logout(client)
 		case client := <-r.Manager.Kick:
+
+			r.mu.Lock()
+			delete(r.ActiveUsers, client)
+			r.mu.Unlock()
 
 			slog.Info(
 				"client kicked from room",
@@ -95,7 +104,6 @@ func (r *Room) Run(ctx context.Context) {
 				slog.String("username", client.Username),
 			)
 
-			r.Kick(client)
 		case msg := <-r.Broadcast:
 
 			slog.Debug(
@@ -144,22 +152,15 @@ func (r *Room) Run(ctx context.Context) {
 }
 
 func (r *Room) Add(client *Client) {
-	r.mu.Lock()
-	r.ActiveUsers[client] = struct{}{}
-	r.mu.Unlock()
+	r.Manager.Add <- client
 }
 
 func (r *Room) Logout(client *Client) {
-	r.mu.Lock()
-
-	delete(r.ActiveUsers, client)
-	r.mu.Unlock()
+	r.Manager.Logout <- client
 }
 
 func (r *Room) Kick(client *Client) {
-	r.mu.Lock()
-	delete(r.ActiveUsers, client)
-	r.mu.Unlock()
+	r.Manager.Kick <- client
 }
 
 func (r *Room) Stop() {
