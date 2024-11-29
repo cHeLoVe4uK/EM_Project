@@ -10,7 +10,7 @@ run:build
 
 docker:
 	@echo "Starting services in docker..."
-	@docker compose -f docker-compose.local.yaml up --build
+	@docker compose -f docker-compose.local.yaml up --build -d
 
 stop:
 	@echo "Stopping services in docker..."

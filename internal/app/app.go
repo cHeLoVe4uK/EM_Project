@@ -2,17 +2,25 @@ package app
 
 import (
 	"context"
+	"os"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/config"
 	v1 "github.com/cHeLoVe4uK/EM_Project/internal/controllers/http/ws/v1"
-	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/memory"
-	userrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/memory"
+	chatRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/memory"
+	chatRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/mongo"
+	userRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/memory"
+	userRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/mongo"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/auth"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/chat"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/user"
+	"github.com/cHeLoVe4uK/EM_Project/pkg/connect"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type App struct {
+	mongo    *mongo.Client
+	chatRepo chat.ChatRepository
+	userRepo user.Repository
 }
 
 func New(ctx context.Context) (*App, error) {
@@ -29,6 +37,7 @@ func (a *App) initDeps(ctx context.Context) error {
 
 	deps := []func(context.Context) error{
 		a.initConfig,
+		a.initRepos,
 	}
 
 	for _, dep := range deps {
@@ -47,15 +56,61 @@ func (a *App) initConfig(_ context.Context) error {
 	return nil
 }
 
+func (a *App) initRepos(ctx context.Context) error {
+
+	repoType := os.Getenv("REPO_TYPE")
+
+	switch repoType {
+	case "mongo":
+
+		if err := a.initMongo(ctx); err != nil {
+			return err
+
+		}
+		db := a.mongo.Database("em_chat")
+
+		chatRepo, err := chatRepoMongo.New(db)
+		if err != nil {
+			return err
+		}
+		a.chatRepo = chatRepo
+
+		userRepo, err := userRepoMongo.New(db)
+		if err != nil {
+			return err
+		}
+		a.userRepo = userRepo
+
+	default:
+		a.chatRepo = chatRepoMemory.New()
+		a.userRepo = userRepoMemory.New()
+
+	}
+
+	return nil
+}
+
+func (a *App) initMongo(ctx context.Context) error {
+
+	mongoDSN := os.Getenv("MONGO_DSN")
+
+	client, err := connect.NewMongo(ctx, mongoDSN)
+	if err != nil {
+		return err
+	}
+
+	a.mongo = client
+
+	return nil
+}
+
 func (a *App) Run() error {
 
-	chatRepo := chatrepo.New()
-	chatService := chat.NewService(context.Background(), nil, chatRepo)
+	chatService := chat.NewService(context.Background(), nil, a.chatRepo)
 
 	authService := auth.NewService()
 
-	userRepo := userrepo.New()
-	userService := user.NewService(authService, userRepo)
+	userService := user.NewService(authService, a.userRepo)
 
 	api := v1.NewAPI(chatService, userService)
 

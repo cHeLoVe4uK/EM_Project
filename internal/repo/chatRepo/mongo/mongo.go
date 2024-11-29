@@ -8,6 +8,7 @@ import (
 	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -18,12 +19,22 @@ type Repository struct {
 	collection *mongo.Collection
 }
 
-func New(db *mongo.Database) *Repository {
+func New(db *mongo.Database) (*Repository, error) {
 	collection := db.Collection(chatsCollection)
+
+	index := mongo.IndexModel{
+		Keys:    bson.M{"chat_id": "text"},
+		Options: options.Index().SetUnique(true),
+	}
+
+	_, err := collection.Indexes().CreateOne(context.Background(), index)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Repository{
 		collection: collection,
-	}
+	}, nil
 }
 
 func (r *Repository) GetChatByID(ctx context.Context, chatID string) (models.Chat, error) {

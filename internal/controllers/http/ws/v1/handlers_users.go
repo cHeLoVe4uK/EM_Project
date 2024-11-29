@@ -2,20 +2,21 @@ package v1
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
-//	@Summary		Create New User
-//	@Description	Creates nes User, return his ID
-//	@Tags			Users
-//	@Produce		json
-//	@Param			user	body		CreateUserRequest	true	"User data"
-//	@Success		201		{object}	CreateUserResponse
-//	@Failure		422		{object}	object
-//	@Failure		500		{object}	object
-//	@Router			/api/v1/users [post]
+// @Summary		Create New User
+// @Description	Creates nes User, return his ID
+// @Tags			Users
+// @Produce		json
+// @Param			user	body		CreateUserRequest	true	"User data"
+// @Success		201		{object}	CreateUserResponse
+// @Failure		422		{object}	object
+// @Failure		500		{object}	object
+// @Router			/api/v1/users [post]
 func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateUserRequest
@@ -58,16 +59,19 @@ func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-//	@Summary		Create New User
-//	@Description	Creates nes User, return his ID
-//	@Tags			Users
-//	@Produce		json
-//	@Param			user	body		LoginUserRequest	true	"User login data"
-//	@Success		200		{object}	LoginUserResponse
-//	@Failure		422		{object}	object
-//	@Failure		500		{object}	object
-//	@Router			/api/v1/users/login [post]
+// @Summary		Create New User
+// @Description	Creates nes User, return his ID
+// @Tags			Users
+// @Produce		json
+// @Param			user	body		LoginUserRequest	true	"User login data"
+// @Success		200		{object}	LoginUserResponse
+// @Failure		422		{object}	object
+// @Failure		500		{object}	object
+// @Router			/api/v1/users/login [post]
 func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
+	log := slog.With(
+		slog.String("op", "LoginUser"),
+	)
 
 	var req LoginUserRequest
 
@@ -83,11 +87,19 @@ func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	}
 
+	log.Debug("login user", slog.String("email", user.Email))
+
 	token, err := a.userService.Login(r.Context(), user)
 	if err != nil {
+		log.Error(
+			"failed to login user",
+			slog.Any("error", err),
+		)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	log.Debug("user logged in", slog.String("token", token.Token))
 
 	var res LoginUserResponse
 
