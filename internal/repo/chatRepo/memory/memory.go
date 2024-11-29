@@ -20,6 +20,22 @@ func New() *Repository {
 	}
 }
 
+func (r *Repository) GetAllChats(_ context.Context) ([]models.Chat, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	chats := make([]models.Chat, len(r.chats))
+
+	i := 0
+
+	for _, chat := range r.chats {
+		chats[i] = chat
+		i++
+	}
+
+	return chats, nil
+}
+
 func (r *Repository) GetChatByID(_ context.Context, chatID string) (models.Chat, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

@@ -25,3 +25,13 @@ func ToChat(chat Chat) models.Chat {
 		Name: chat.Name,
 	}
 }
+
+func ToChatBatch(chats []Chat) []models.Chat {
+	out := make([]models.Chat, len(chats))
+
+	for i, chat := range chats {
+		out[i] = ToChat(chat)
+	}
+
+	return out
+}

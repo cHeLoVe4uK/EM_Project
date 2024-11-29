@@ -37,6 +37,23 @@ func New(db *mongo.Database) (*Repository, error) {
 	}, nil
 }
 
+func (r *Repository) GetAllChats(ctx context.Context) ([]models.Chat, error) {
+	var chats []Chat
+
+	filter := bson.M{}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+
+	return ToChatBatch(chats), nil
+}
+
 func (r *Repository) GetChatByID(ctx context.Context, chatID string) (models.Chat, error) {
 	var chat Chat
 

@@ -43,6 +43,7 @@ type MessageService interface {
 }
 
 type ChatRepository interface {
+	GetAllChats(ctx context.Context) ([]models.Chat, error)
 	GetChatByID(ctx context.Context, chatID string) (models.Chat, error)
 	CreateChat(ctx context.Context, chat models.Chat) (string, error)
 	UpdateChat(ctx context.Context, chat models.Chat) error
@@ -124,6 +125,15 @@ func (s *Service) GetActiveChats(ctx context.Context) ([]models.Chat, error) {
 	for _, room := range s.ActiveChats {
 		chats[i] = room.Chat
 		i++
+	}
+
+	return chats, nil
+}
+
+func (s *Service) GetAllChats(ctx context.Context) ([]models.Chat, error) {
+	chats, err := s.chatRepo.GetAllChats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get all chats: %w", err)
 	}
 
 	return chats, nil

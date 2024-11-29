@@ -8,16 +8,16 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
-//	@Summary		Create chat
-//	@Description	Creates new chat, runs in background and returns chat ID
-//	@Tags			Chats
-//	@Accept			json
-//	@Produce		json
-//	@Param			chat	body		CreateChatRequest	true	"Chat name"
-//	@Success		200		{object}	CreateChatResponse
-//	@Failure		400		{object}	object
-//	@Failure		500		{object}	object
-//	@Router			/api/v1/chats [post]
+// @Summary		Create chat
+// @Description	Creates new chat, runs in background and returns chat ID
+// @Tags			Chats
+// @Accept			json
+// @Produce		json
+// @Param			chat	body		CreateChatRequest	true	"Chat name"
+// @Success		200		{object}	CreateChatResponse
+// @Failure		400		{object}	object
+// @Failure		500		{object}	object
+// @Router			/api/v1/chats [post]
 func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateChatRequest
@@ -64,15 +64,49 @@ func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-//	@Summary		Get all active chats
-//	@Description	Prints all active chats id and name
-//	@Tags			Chats
-//	@Produce		json
-//	@Success		200	{array}		GetActiveChatsResponse
-//	@Failure		400	{object}	object
-//	@Failure		500	{object}	object
-//	@Router			/api/v1/chats [get]
+// @Summary		Get all chats
+// @Description	Prints all chats id and name
+// @Tags			Chats
+// @Produce		json
+// @Success		200	{array}		Chat
+// @Failure		400	{object}	object
+// @Failure		500	{object}	object
+// @Router			/api/v1/chats [get]
 func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
+
+	chats, err := a.chatService.GetAllChats(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	out := make([]Chat, len(chats))
+
+	for i, chat := range chats {
+		out[i].ID = chat.ID
+		out[i].Name = chat.Name
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(data)
+}
+
+// @Summary		Get all active chats
+// @Description	Prints all active chats id and name
+// @Tags			Chats
+// @Produce		json
+// @Success		200	{array}		Chat
+// @Failure		400	{object}	object
+// @Failure		500	{object}	object
+// @Router			/api/v1/chats/active [get]
+func (a *API) GetAllActiveChats(w http.ResponseWriter, r *http.Request) {
 
 	chats, err := a.chatService.GetActiveChats(r.Context())
 	if err != nil {
@@ -80,7 +114,7 @@ func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out := make([]GetActiveChatsResponse, len(chats))
+	out := make([]Chat, len(chats))
 
 	for i, chat := range chats {
 		out[i].ID = chat.ID
