@@ -3,7 +3,9 @@ package v1
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
+	"os"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
@@ -31,12 +33,21 @@ func NewAPI(chatService ChatService, userService UserService) *API {
 }
 
 func (a *API) Run() error {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	host := os.Getenv("HOST")
+
+	addr := net.JoinHostPort(host, port)
+
 	srv := http.Server{
-		Addr:    ":8080",
+		Addr:    addr,
 		Handler: a.routes(),
 	}
 
-	slog.Info("server started", slog.String("addr", ":8080"))
+	slog.Info("server started", slog.String("addr", addr))
 
 	return srv.ListenAndServe()
 }
