@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -14,17 +13,19 @@ import (
 // @Description	Upgrades http connection to websocket
 // @Tags			Chats
 // @Produce		json
-// @Param			chat body		JoinChatRequest	true	"Chat data"
+// @Param			id path string true "Chat ID"
 // @Failure		422		{object}	object
 // @Failure		500		{object}	object
-// @Router			/api/v1/chats/connect [get]
+// @Router			/api/v1/chats/{id}/connect [get]
 func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
-
-	var req JoinChatRequest
 
 	slog.Debug("decoding request")
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	chatID := r.PathValue("id")
+
+	if chatID == "" {
+		slog.Error("chat id is empty")
+
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -38,21 +39,21 @@ func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 	}
 
-	slog.With(
+	log := slog.With(
 		slog.String("user_id", user.ID),
 		slog.String("username", user.Username),
-		slog.String("chat_id", req.ChatID),
+		slog.String("chat_id", chatID),
 	)
 
-	slog.Debug("connecting to chat")
+	log.Debug("connecting to chat")
 
-	if err := a.chatService.ConnectByID(w, r, req.ChatID, user); err != nil {
-		slog.Error("connecting to chat", slog.Any("error", err))
+	if err := a.chatService.ConnectByID(w, r, chatID, user); err != nil {
+		log.Error("connecting to chat", slog.Any("error", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info(
+	log.Info(
 		"user connected",
 	)
 }

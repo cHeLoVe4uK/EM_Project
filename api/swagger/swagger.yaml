@@ -23,11 +23,6 @@ definitions:
       id:
         type: string
     type: object
-  v1.JoinChatRequest:
-    properties:
-      chat_id:
-        type: string
-    type: object
   v1.LoginUserRequest:
     properties:
       email:
@@ -73,16 +68,15 @@ paths:
       summary: Create chat
       tags:
       - Chats
-  /api/v1/chats/connect:
+  /api/v1/chats/{id}/connect:
     get:
       description: Upgrades http connection to websocket
       parameters:
-      - description: Chat data
-        in: body
-        name: chat
+      - description: Chat ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/v1.JoinChatRequest'
+        type: string
       produces:
       - application/json
       responses:

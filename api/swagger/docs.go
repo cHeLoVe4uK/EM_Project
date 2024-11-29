@@ -61,7 +61,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/chats/connect": {
+        "/api/v1/chats/{id}/connect": {
             "get": {
                 "description": "Upgrades http connection to websocket",
                 "produces": [
@@ -73,13 +73,11 @@ const docTemplate = `{
                 "summary": "Upgrade http connection",
                 "parameters": [
                     {
-                        "description": "Chat data",
-                        "name": "chat",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.JoinChatRequest"
-                        }
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -220,14 +218,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.JoinChatRequest": {
-            "type": "object",
-            "properties": {
-                "chat_id": {
                     "type": "string"
                 }
             }

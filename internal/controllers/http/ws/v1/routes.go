@@ -21,7 +21,7 @@ func (a *API) routes() *chi.Mux {
 
 			r.Post("/", a.CreateChat)
 
-			r.Get("/connect", a.ConnectChat)
+			r.Get("/{id}/connect", a.ConnectChat)
 
 		})
 
