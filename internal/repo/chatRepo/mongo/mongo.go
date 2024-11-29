@@ -7,7 +7,6 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
