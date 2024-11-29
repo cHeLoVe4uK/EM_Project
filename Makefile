@@ -1,9 +1,11 @@
+include .env
+
 build:
 	@echo "Building app..."
 	@go build -o ./.bin/app ./cmd/app
 
 run:build
-	@echo "Swagger:		http://localhost:8080/swagger/index.html"
+	@echo "Swagger:		http://localhost:${PORT}/swagger/index.html"
 	@./.bin/app
 
 docker:

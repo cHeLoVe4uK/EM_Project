@@ -6,7 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports: 
-      - 9000:9000
+      - 8080:8080
+      - "${PORT}:${PORT}"
     env_file:
       - path: .env
         required: false
