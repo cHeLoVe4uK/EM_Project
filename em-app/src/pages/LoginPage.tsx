@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
       document.cookie = `access_token=${data.access_token}`;
       document.cookie = `refresh_token=${data.refresh_token}`;
       message.success("Login successful");
-      navigate("/chats");
+      navigate("/chat");
     } catch (err: any) {
       message.error(err.message);
     }

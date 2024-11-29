@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Input, message, Modal } from "antd";
-import ChatList from "../components/ChatList";
-import MessageList from "../components/MessageList";
+import { Button, Input, message, Modal, Layout, List } from "antd";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
+import { createChat, connectToChat } from "../api/api";
+
+const { Sider, Content } = Layout;
 
 interface Chat {
   id: string;
@@ -44,61 +45,59 @@ const ChatPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const socket = new WebSocket(`${import.meta.env.VITE_WS_BASE_URL}/ws`);
-    socketRef.current = socket;
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.chat_id === selectedChat) {
+    if (selectedChat) {
+      const socket = connectToChat({ chat_id: selectedChat });
+      socketRef.current = socket;
+  
+      socket.onopen = () => {
+        console.log("WebSocket connected");
+        message.success("Connected to chat!");
+      };
+  
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
         setMessages((prev) => [...prev, data]);
-      }
-    };
+      };
+  
+      socket.onerror = () => {
+        message.error("WebSocket connection error. Check the server.");
+      };
+  
+      socket.onclose = () => {
+        console.log("WebSocket connection closed");
+      };
+  
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.close();
+          socketRef.current = null;
+        }
+      };
+    }
+  }, [selectedChat]);  
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      message.error("WebSocket connection error");
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, [selectedChat]);
-
-  const handleSelectChat = (chatId: string) => {
+  const handleSelectChat = async (chatId: string) => {
     setSelectedChat(chatId);
 
-    const fetchMessages = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${chatId}/messages`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch messages");
-        }
-        const data = await response.json();
-        setMessages(data);
-      } catch (err: any) {
-        message.error(err.message);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${chatId}/messages`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch messages");
       }
-    };
-
-    fetchMessages();
+      const data = await response.json();
+      setMessages(data);
+    } catch (err: any) {
+      message.error(err.message);
+    }
   };
 
   const handleSendMessage = () => {
     if (!selectedChat || !socketRef.current) {
-      message.warning("Please select a chat or check your connection");
+      message.warning("Please select a chat or check your connection.");
       return;
     }
 
-    const messageData = {
-      chat_id: selectedChat,
-      text: newMessage,
-      sender: "You",
-    };
-
+    const messageData = { text: newMessage, sender: "You" };
     socketRef.current.send(JSON.stringify(messageData));
 
     setMessages((prev) => [
@@ -111,26 +110,16 @@ const ChatPage: React.FC = () => {
 
   const handleCreateChat = async () => {
     if (!newChatName.trim()) {
-      message.warning("Chat name cannot be empty");
+      message.warning("Chat name cannot be empty.");
       return;
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newChatName }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create chat");
-      }
-
-      const newChat = await response.json();
-      setChats((prev) => [...prev, newChat]);
-      message.success("Chat created successfully");
+      const newChat = await createChat({ name: newChatName });
+      setChats((prev) => [...prev, { id: newChat.id, name: newChatName }]);
       setNewChatName("");
       setIsModalVisible(false);
+      message.success("Chat created successfully.");
     } catch (err: any) {
       message.error(err.message);
     }
@@ -146,49 +135,54 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <div
-        style={{
-          flex: 1,
-          borderRight: "1px solid #ccc",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-        }}
+    <Layout style={{ height: "100vh" }}>
+      <Sider
+        theme="light"
+        width={250}
+        style={{ borderRight: "1px solid #ccc", overflowY: "auto" }}
       >
-        <ChatList chats={chats} onSelectChat={handleSelectChat} />
-        <Button
-          type="primary"
-          style={{
-            position: "absolute",
-            bottom: "70px",
-            left: "10px",
-            width: "90%",
-          }}
-          onClick={() => setIsModalVisible(true)}
-        >
+        <List
+          header={<h3>Chats</h3>}
+          dataSource={chats}
+          renderItem={(chat) => (
+            <List.Item
+              style={{
+                cursor: "pointer",
+                padding: "10px",
+                background: chat.id === selectedChat ? "#f0f0f0" : "inherit",
+              }}
+              onClick={() => handleSelectChat(chat.id)}
+            >
+              {chat.name}
+            </List.Item>
+          )}
+        />
+        <Button type="primary" onClick={() => setIsModalVisible(true)} block>
           New Chat
         </Button>
-        <Button
-          type="primary"
-          danger
-          style={{
-            position: "absolute",
-            bottom: "20px",
-            left: "10px",
-            width: "90%",
-          }}
-          onClick={handleLogout}
-        >
+        <Button type="primary" danger onClick={handleLogout} block>
           Logout
         </Button>
-      </div>
-      <div style={{ flex: 3, display: "flex", flexDirection: "column" }}>
+      </Sider>
+
+      <Content style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ flex: 1, overflowY: "auto", padding: "1rem" }}>
-          <MessageList messages={messages} />
+          {selectedChat ? (
+            <List
+              header={<h3>Messages</h3>}
+              dataSource={messages}
+              renderItem={(message) => (
+                <List.Item>
+                  <strong>{message.sender}:</strong> {message.text}
+                </List.Item>
+              )}
+            />
+          ) : (
+            <p>Select a chat to start messaging.</p>
+          )}
         </div>
-        <div style={{ display: "flex", padding: "1rem" }}>
+
+        <div style={{ padding: "1rem", display: "flex", gap: "10px" }}>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -199,10 +193,11 @@ const ChatPage: React.FC = () => {
             Send
           </Button>
         </div>
-      </div>
+      </Content>
+
       <Modal
         title="Create New Chat"
-        visible={isModalVisible}
+        open={isModalVisible}
         onOk={handleCreateChat}
         onCancel={() => setIsModalVisible(false)}
         okText="Create"
@@ -214,7 +209,7 @@ const ChatPage: React.FC = () => {
           placeholder="Enter chat name"
         />
       </Modal>
-    </div>
+    </Layout>
   );
 };
 

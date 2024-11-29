@@ -8,28 +8,25 @@ import {
   ResponseCreateChat,
 } from "./types";
 
-// Авторизация
 export const login = async (data: RequestLoginUser) => {
-  return await apiClient.post("/users/login", data); // Исправлен путь
+  return await apiClient.post("/users/login", data);
 };
 
 export const register = async (data: RequestRegisterUser) => {
-  return await apiClient.post("/users", data); // Исправлен путь
+  return await apiClient.post("/users", data);
 };
 
-// Работа с чатами
 export const createChat = async (data: RequestCreateChat): Promise<ResponseCreateChat> => {
-  const response = await apiClient.post("/chats", data); // Исправлен путь
+  const response = await apiClient.post("/chats", data);
   return response.data;
 };
 
 export const deleteChat = async (data: RequestDeleteChat) => {
-  return await apiClient.delete("/chats", { data }); // Уточнение пути
+  return await apiClient.delete(`/chats/${data.chat_id}`);
 };
 
-// Подключение к WebSocket
 export const connectToChat = (data: RequestConnectToChat): WebSocket => {
-  const wsUrl = `${import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8080/api/v1"}/chats/connect`;
-  const socket = new WebSocket(`${wsUrl}?chat_id=${data.chat_id}`);
+  const wsUrl = `${import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8080/api/v1"}/chats/${data.chat_id}/connect`;
+  const socket = new WebSocket(wsUrl);
   return socket;
 };
