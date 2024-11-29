@@ -10,6 +10,7 @@ func (a *API) routes() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
+	r.Use(corsMiddleware)
 	r.Use(middleware.Recoverer)
 
 	r.Get("/swagger/*", httpSwagger.Handler())
