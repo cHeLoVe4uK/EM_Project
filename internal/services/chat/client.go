@@ -146,6 +146,7 @@ func (c *Client) write() error {
 				"decoding message",
 				slog.Any("error", err),
 			)
+			continue
 		}
 
 		c.ChatRoom.Broadcast <- NewMessage(c, msg.Content)
