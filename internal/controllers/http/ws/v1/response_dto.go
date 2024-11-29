@@ -11,3 +11,8 @@ type CreateUserResponse struct {
 type LoginUserResponse struct {
 	Token string `json:"token"`
 }
+
+type GetActiveChatsResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}

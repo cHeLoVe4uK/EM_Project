@@ -113,6 +113,22 @@ func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, err
 	return chatID, nil
 }
 
+func (s *Service) GetActiveChats(ctx context.Context) ([]models.Chat, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	chats := make([]models.Chat, len(s.ActiveChats))
+
+	i := 0
+
+	for _, room := range s.ActiveChats {
+		chats[i] = room.Chat
+		i++
+	}
+
+	return chats, nil
+}
+
 func (s *Service) ConnectByID(
 	w http.ResponseWriter,
 	r *http.Request,

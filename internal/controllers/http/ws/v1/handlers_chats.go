@@ -63,3 +63,37 @@ func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(data)
 }
+
+//	@Summary		Get all active chats
+//	@Description	Prints all active chats id and name
+//	@Tags			Chats
+//	@Produce		json
+//	@Success		200	{array}		GetActiveChatsResponse
+//	@Failure		400	{object}	object
+//	@Failure		500	{object}	object
+//	@Router			/api/v1/chats [get]
+func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
+
+	chats, err := a.chatService.GetActiveChats(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	out := make([]GetActiveChatsResponse, len(chats))
+
+	for i, chat := range chats {
+		out[i].ID = chat.ID
+		out[i].Name = chat.Name
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(data)
+}

@@ -9,14 +9,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// @Summary		Upgrade http connection
-// @Description	Upgrades http connection to websocket
-// @Tags			Chats
-// @Produce		json
-// @Param			id path string true "Chat ID"
-// @Failure		422		{object}	object
-// @Failure		500		{object}	object
-// @Router			/api/v1/chats/{id}/connect [get]
+//	@Summary		Upgrade http connection
+//	@Description	Upgrades http connection to websocket
+//	@Tags			Chats
+//	@Produce		json
+//	@Param			id	path		string	true	"Chat ID"
+//	@Failure		422	{object}	object
+//	@Failure		500	{object}	object
+//	@Router			/api/v1/chats/{id}/connect [get]
 func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
 
 	slog.Debug("decoding request")
