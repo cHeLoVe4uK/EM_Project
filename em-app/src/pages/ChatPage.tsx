@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Input, message, Modal, Layout, List } from "antd";
+import { Button, Input, message, Modal, Layout, List, Typography } from "antd";
+import { PlusOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { createChat, connectToChat } from "../api/api";
 
 const { Sider, Content } = Layout;
+const { Title } = Typography;
 
 interface Chat {
   id: string;
@@ -24,6 +26,7 @@ const ChatPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newChatName, setNewChatName] = useState("");
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const navigate = useNavigate();
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -48,25 +51,25 @@ const ChatPage: React.FC = () => {
     if (selectedChat) {
       const socket = connectToChat({ chat_id: selectedChat });
       socketRef.current = socket;
-  
+
       socket.onopen = () => {
         console.log("WebSocket connected");
         message.success("Connected to chat!");
       };
-  
+
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         setMessages((prev) => [...prev, data]);
       };
-  
+
       socket.onerror = () => {
         message.error("WebSocket connection error. Check the server.");
       };
-  
+
       socket.onclose = () => {
         console.log("WebSocket connection closed");
       };
-  
+
       return () => {
         if (socketRef.current) {
           socketRef.current.close();
@@ -74,7 +77,7 @@ const ChatPage: React.FC = () => {
         }
       };
     }
-  }, [selectedChat]);  
+  }, [selectedChat]);
 
   const handleSelectChat = async (chatId: string) => {
     setSelectedChat(chatId);
@@ -92,21 +95,27 @@ const ChatPage: React.FC = () => {
   };
 
   const handleSendMessage = () => {
+    if (!newMessage.trim()) {
+      message.warning("Message cannot be empty.");
+      return;
+    }
+  
     if (!selectedChat || !socketRef.current) {
       message.warning("Please select a chat or check your connection.");
       return;
     }
-
+  
     const messageData = { text: newMessage, sender: "You" };
     socketRef.current.send(JSON.stringify(messageData));
-
+  
     setMessages((prev) => [
       ...prev,
       { id: Date.now().toString(), ...messageData },
     ]);
-
+  
     setNewMessage("");
   };
+  
 
   const handleCreateChat = async () => {
     if (!newChatName.trim()) {
@@ -135,54 +144,113 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <Layout style={{ height: "100vh" }}>
+    <Layout style={{ height: "100vh", background: "#f0f2f5" }}>
       <Sider
         theme="light"
-        width={250}
-        style={{ borderRight: "1px solid #ccc", overflowY: "auto" }}
+        width={300}
+        style={{
+          borderRight: "1px solid #ccc",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
       >
-        <List
-          header={<h3>Chats</h3>}
-          dataSource={chats}
-          renderItem={(chat) => (
-            <List.Item
-              style={{
-                cursor: "pointer",
-                padding: "10px",
-                background: chat.id === selectedChat ? "#f0f0f0" : "inherit",
-              }}
-              onClick={() => handleSelectChat(chat.id)}
-            >
-              {chat.name}
-            </List.Item>
-          )}
-        />
-        <Button type="primary" onClick={() => setIsModalVisible(true)} block>
-          New Chat
-        </Button>
-        <Button type="primary" danger onClick={handleLogout} block>
+        <div>
+          <Title level={3} style={{ textAlign: "center", marginBottom: "20px",  padding: "20px", borderBottom: "1px solid #ccc",}}>
+            Chats
+          </Title>
+          <List
+            dataSource={chats}
+            renderItem={(chat) => (
+              <List.Item
+                style={{
+                  cursor: "pointer",
+                  padding: "10px",
+                  background: chat.id === selectedChat ? "#e6f7ff" : "#fff",
+                  borderRadius: "5px",
+                  marginBottom: "10px",
+                }}
+                onClick={() => handleSelectChat(chat.id)}
+              >
+                {chat.name}
+              </List.Item>
+            )}
+          />
+          
+          <Button
+            icon={<PlusOutlined />}
+            onClick={() => setIsModalVisible(true)}
+            style={{
+              width: "80%",
+              background: "#ffffff",
+              borderRadius: "12",
+              left: 30,
+              padding: "20px",
+            }}
+          />
+        </div>
+        <Button
+          icon={<LogoutOutlined />}
+          type="primary"
+          danger
+          onClick={() => setIsLogoutModalVisible(true)}
+          style={{ position: 'absolute', bottom: 20, left: 20 }}
+        >
           Logout
         </Button>
       </Sider>
 
-      <Content style={{ display: "flex", flexDirection: "column" }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "1rem" }}>
+      <Content style={{ padding: "20px", display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            padding: "20px",
+            background: "#fff",
+          }}
+        >
           {selectedChat ? (
-            <List
-              header={<h3>Messages</h3>}
-              dataSource={messages}
-              renderItem={(message) => (
-                <List.Item>
-                  <strong>{message.sender}:</strong> {message.text}
-                </List.Item>
-              )}
-            />
+        <List
+        dataSource={messages}
+        renderItem={(message) => (
+          <List.Item
+            style={{
+              padding: "10px 15px",
+              marginBottom: "10px",
+              borderRadius: "12px",
+              background:
+                message.sender === "You" ? "#d9f7be" : "#f0f0f0",
+              alignSelf: message.sender === "You" ? "flex-end" : "flex-start",
+              maxWidth: "70%",
+              boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <div>
+              <Typography.Text
+                style={{
+                  fontWeight: message.sender === "You" ? "bold" : "normal",
+                  marginBottom: "5px",
+                  display: "block",
+                }}
+              >
+                {message.sender}
+              </Typography.Text>
+              <Typography.Text>{message.text}</Typography.Text>
+            </div>
+          </List.Item>
+        )}
+      />
           ) : (
-            <p>Select a chat to start messaging.</p>
+            <p style={{ textAlign: "center", color: "#888" }}>
+              Select a chat to start messaging.
+            </p>
           )}
         </div>
 
-        <div style={{ padding: "1rem", display: "flex", gap: "10px" }}>
+        <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -208,6 +276,17 @@ const ChatPage: React.FC = () => {
           onChange={(e) => setNewChatName(e.target.value)}
           placeholder="Enter chat name"
         />
+      </Modal>
+
+      <Modal
+        title="Confirm Logout"
+        open={isLogoutModalVisible}
+        onOk={handleLogout}
+        onCancel={() => setIsLogoutModalVisible(false)}
+        okText="Yes"
+        cancelText="Cancel"
+      >
+        <p>Are you sure you want to log out?</p>
       </Modal>
     </Layout>
   );

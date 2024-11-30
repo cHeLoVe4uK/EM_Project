@@ -1,7 +1,8 @@
 import React from "react";
 import { LoginForm } from "../components/Form";
-import { message } from "antd";
+import { message, Button, Form, Input } from "antd";
 import { useNavigate } from "react-router-dom";
+import { GithubOutlined } from "@ant-design/icons";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,12 +14,12 @@ const LoginPage: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-  
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.msg || "Login failed");
       }
-  
+
       const data = await response.json();
       document.cookie = `access_token=${data.access_token}`;
       document.cookie = `refresh_token=${data.refresh_token}`;
@@ -27,12 +28,78 @@ const LoginPage: React.FC = () => {
     } catch (err: any) {
       message.error(err.message);
     }
-  };  
+  };
 
   return (
-    <div style={{ maxWidth: 400, margin: "auto", padding: "1rem" }}>
-      <h2>Login</h2>
-      <LoginForm onSubmit={handleLogin} />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        height: "100vh",
+        backgroundColor: "#041528",
+      }}
+    >
+      <h1
+        style={{
+          textAlign: "center",
+          fontSize: "5em",
+          margin: "0px",
+          marginTop: "70px",
+        }}
+      >
+        <a href="/" style={{ color: "#fdfdfd", textDecoration: "none" }}>
+          Chat.
+        </a>
+      </h1>
+      <h3
+        style={{
+          color: "#aaaaaa",
+          textAlign: "center",
+          fontSize: "1.6em",
+          margin: "0px",
+        }}
+      >
+        -Effective Mobile-
+      </h3>
+      <Form
+        onFinish={handleLogin}
+        style={{
+          maxWidth: "300px",
+          width: "100%",
+          paddingRight: "25px",
+          paddingTop: "35px",
+          paddingBottom: "20px",
+          paddingLeft: "25px",
+          border: "1px solid #fdfdfd",
+          borderRadius: "15px",
+          backgroundColor: "#dfdfdf",
+          marginTop: "80px",
+        }}
+      >
+        <Form.Item
+          name="email"
+          rules={[{ required: true, message: "Please input your email!" }]}
+        >
+          <Input placeholder="Email" />
+        </Form.Item>
+        <Form.Item
+          name="password"
+          rules={[{ required: true, message: "Please input your password!" }]}
+        >
+          <Input.Password placeholder="Password" />
+        </Form.Item>
+        <Form.Item>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Button type="primary" htmlType="submit">
+              Login
+            </Button>
+            <Button type="default" onClick={() => navigate("/register")}>
+              Register
+            </Button>
+          </div>
+        </Form.Item>
+      </Form>
     </div>
   );
 };
