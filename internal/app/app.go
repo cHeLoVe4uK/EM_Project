@@ -9,6 +9,7 @@ import (
 	chatRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/memory"
 	chatRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/mongo"
 	msgRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/msgRepo/memory"
+	msgRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/msgRepo/mongo"
 	userRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/memory"
 	userRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/mongo"
 
@@ -85,13 +86,17 @@ func (a *App) initRepos(ctx context.Context) error {
 		}
 		a.userRepo = userRepo
 
+		msgRepo, err := msgRepoMongo.New(db)
+		if err != nil {
+			return err
+		}
+		a.msgRepo = msgRepo
+
 	default:
 		a.chatRepo = chatRepoMemory.New()
 		a.userRepo = userRepoMemory.New()
-
+		a.msgRepo = msgRepoMemory.New()
 	}
-
-	a.msgRepo = msgRepoMemory.New()
 
 	return nil
 }
