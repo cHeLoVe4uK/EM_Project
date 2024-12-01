@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"
@@ -18,7 +19,9 @@ type Room struct {
 	Users       map[string]bool
 
 	Broadcast chan *MessageDTO
-	History   [100]MessageDTO
+	History   *History
+
+	saveMsgsChan chan struct{}
 
 	Manager *RoomManger
 
@@ -34,14 +37,14 @@ type RoomManger struct {
 	Close chan struct{}
 }
 
-func (s *Service) newRoom(chat models.Chat) *Room {
-	return &Room{
-		Chat:        chat,
-		ActiveUsers: make(map[*Client]struct{}),
-		Users:       make(map[string]bool),
-		Broadcast:   make(chan *MessageDTO, 100),
-		History:     [100]MessageDTO{},
-		msgService:  s.msgService,
+func (s *Service) newRoom(chat models.Chat) (*Room, error) {
+	r := &Room{
+		Chat:         chat,
+		ActiveUsers:  make(map[*Client]struct{}),
+		Users:        make(map[string]bool),
+		Broadcast:    make(chan *MessageDTO, 100),
+		saveMsgsChan: make(chan struct{}),
+		msgService:   s.msgService,
 		Manager: &RoomManger{
 			Add:    make(chan *Client),
 			Logout: make(chan *Client),
@@ -49,6 +52,17 @@ func (s *Service) newRoom(chat models.Chat) *Room {
 			Close:  make(chan struct{}),
 		},
 	}
+
+	history, err := r.newHistory(s.ctx, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	r.History = history
+
+	go r.controlHistory(r.saveMsgsChan)
+
+	return r, nil
 }
 
 func (r *Room) Run(ctx context.Context) {
@@ -131,7 +145,7 @@ func (r *Room) Run(ctx context.Context) {
 				continue
 			}
 
-			// TODO: Add to History
+			r.History.Add(*msg)
 
 			for c := range r.ActiveUsers {
 
@@ -153,6 +167,36 @@ func (r *Room) Run(ctx context.Context) {
 
 func (r *Room) Add(client *Client) {
 	r.Manager.Add <- client
+
+	msgs := r.History.Read()
+	if len(msgs) == 0 {
+		return
+	}
+
+	slog.Debug(
+		"send history",
+		slog.Int("messages", len(msgs)),
+	)
+
+	data, err := json.Marshal(msgs)
+	if err != nil {
+		slog.Warn(
+			"marshal history",
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
+	if err != nil {
+		slog.Warn(
+			"prepare history",
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	client.Send(pm)
 }
 
 func (r *Room) Logout(client *Client) {
@@ -221,8 +265,65 @@ func (r *Room) Stop() {
 
 	}
 
-	// TODO: Save all undelivered msges
+	r.saveMsgsChan <- struct{}{}
 
 	// TODO: Save users state for chat to repo
 
+}
+
+func (r *Room) controlHistory(saveChan chan struct{}) {
+	tick := time.NewTicker(10 * time.Minute)
+	defer tick.Stop()
+
+	ctx := context.TODO()
+
+	for {
+		select {
+		case <-tick.C:
+
+			if err := r.StashHistory(ctx); err != nil {
+				slog.Error(
+					"failed to stash history by timer",
+					slog.Any("error", err),
+				)
+			}
+
+		case <-saveChan:
+			retry := 0
+			for {
+
+				if err := r.StashHistory(ctx); err != nil {
+					slog.Error(
+						"failed to stash history by save chan",
+						slog.Any("error", err),
+						slog.Int("retry", retry),
+					)
+
+					retry++
+					if retry > 3 {
+						break
+					}
+
+					time.Sleep(time.Second)
+					continue
+				}
+
+				break
+			}
+
+		}
+
+	}
+}
+
+func (r *Room) StashHistory(ctx context.Context) error {
+	msgs := ToMessageBatch(r.History.ReadNew())
+
+	if err := r.msgService.SaveMessages(ctx, msgs); err != nil {
+		return err
+	}
+
+	r.History.MarkReaded()
+
+	return nil
 }

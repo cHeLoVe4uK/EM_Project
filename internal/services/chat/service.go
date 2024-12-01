@@ -43,6 +43,8 @@ const (
 )
 
 type MessageService interface {
+	GetChatMessages(ctx context.Context, chatID string) ([]models.Message, error)
+	SaveMessages(ctx context.Context, messages []models.Message) error
 }
 
 type ChatRepository interface {
@@ -105,7 +107,11 @@ func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, err
 		"creating room",
 	)
 
-	room := s.newRoom(chat)
+	room, err := s.newRoom(chat)
+	if err != nil {
+		return "", err
+	}
+
 	s.ActiveChats[chatID] = room
 
 	go room.Run(s.ctx)
@@ -180,12 +186,16 @@ func (s *Service) ConnectByID(
 
 	room, ok := s.ActiveChats[chatID]
 	if !ok {
+		var err error
 
 		log.Debug(
 			"creating new room",
 		)
 
-		room = s.newRoom(chat)
+		room, err = s.newRoom(chat)
+		if err != nil {
+			return err
+		}
 		s.ActiveChats[chatID] = room
 
 		go room.Run(s.ctx)
@@ -197,7 +207,7 @@ func (s *Service) ConnectByID(
 
 	s.mu.Unlock()
 
-	room.Add(client)
+	go room.Add(client)
 
 	log.Debug(
 		"starting session",

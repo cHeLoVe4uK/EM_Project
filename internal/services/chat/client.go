@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -35,11 +34,14 @@ func (c *Client) StartSession(ctx context.Context) error {
 		c.conn = nil
 	}()
 
-	slog.Info(
-		"starting new session",
+	log := slog.With(
 		slog.String("client_id", c.ID),
 		slog.String("username", c.Username),
 		slog.String("room_id", c.ChatRoom.ID),
+	)
+
+	log.Info(
+		"starting new session",
 	)
 
 	gr, ctx := errgroup.WithContext(ctx)
@@ -48,9 +50,8 @@ func (c *Client) StartSession(ctx context.Context) error {
 	gr.Go(c.write)
 
 	if err := gr.Wait(); err != nil {
-		slog.Info(
+		log.Info(
 			"session closed",
-			slog.String("client_id", c.ID),
 		)
 		return err
 	}
@@ -69,7 +70,7 @@ func (c *Client) read() error {
 		ticker.Stop()
 	}()
 
-	slog.With(
+	log := slog.With(
 		slog.String("client_id", c.ID),
 		slog.String("username", c.Username),
 		slog.String("room_id", c.ChatRoom.ID),
@@ -88,14 +89,17 @@ func (c *Client) read() error {
 
 			for _, msg := range msgs {
 				if err := c.conn.WritePreparedMessage(msg); err != nil {
-					return fmt.Errorf("write message: %w", err)
+					log.Warn(
+						"write message",
+						slog.Any("error", err),
+					)
 				}
 			}
 
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
-			slog.Debug(
+			log.Debug(
 				"ping client",
 			)
 
@@ -115,18 +119,17 @@ func (c *Client) write() error {
 		return nil
 	})
 
-	slog.With(
+	log := slog.With(
 		slog.String("client_id", c.ID),
 		slog.String("username", c.Username),
 		slog.String("room_id", c.ChatRoom.ID),
 	)
 
 	for {
-
 		_, text, err := c.conn.ReadMessage()
 		if err != nil {
 
-			slog.Error(
+			log.Error(
 				"read message",
 				slog.Any("error", err),
 			)
@@ -142,7 +145,7 @@ func (c *Client) write() error {
 		decoder := json.NewDecoder(reader)
 		err = decoder.Decode(msg)
 		if err != nil {
-			slog.Warn(
+			log.Warn(
 				"decoding message",
 				slog.Any("error", err),
 			)

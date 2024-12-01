@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -35,4 +36,46 @@ func (msg *MessageDTO) Render() ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func FromMessage(msg models.Message) MessageDTO {
+	return MessageDTO{
+		ID:        msg.ID,
+		Author:    msg.Author,
+		ChatID:    msg.ChatID,
+		Content:   msg.Content,
+		IsEdited:  msg.IsEdited,
+		Timestamp: msg.Timestamp,
+	}
+}
+
+func FromMessageBatch(msgs []models.Message) []MessageDTO {
+	messages := make([]MessageDTO, len(msgs))
+
+	for i, msg := range msgs {
+		messages[i] = FromMessage(msg)
+	}
+
+	return messages
+}
+
+func ToMessage(msg MessageDTO) models.Message {
+	return models.Message{
+		ID:        msg.ID,
+		Author:    msg.Author,
+		ChatID:    msg.ChatID,
+		Content:   msg.Content,
+		IsEdited:  msg.IsEdited,
+		Timestamp: msg.Timestamp,
+	}
+}
+
+func ToMessageBatch(msgs []MessageDTO) []models.Message {
+	messages := make([]models.Message, len(msgs))
+
+	for i, msg := range msgs {
+		messages[i] = ToMessage(msg)
+	}
+
+	return messages
 }
