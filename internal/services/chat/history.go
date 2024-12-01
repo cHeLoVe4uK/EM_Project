@@ -34,6 +34,7 @@ func (r *Room) newHistory(ctx context.Context, chatID string) (*History, error) 
 	}
 
 	h.AddBatch(FromMessageBatch(msgs))
+	h.MarkReaded()
 
 	return h, nil
 }

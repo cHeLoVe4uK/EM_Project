@@ -165,7 +165,9 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 		return msgs, nil
 	}
 
-	room.saveMsgsChan <- struct{}{}
+	if err := room.StashHistory(ctx); err != nil {
+		return nil, err
+	}
 
 	msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
 	if err != nil {
