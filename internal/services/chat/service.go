@@ -148,6 +148,33 @@ func (s *Service) GetAllChats(ctx context.Context) ([]models.Chat, error) {
 	return chats, nil
 }
 
+func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Message, error) {
+
+	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	room, ok := s.ActiveChats[chatID]
+	if !ok {
+		msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		return msgs, nil
+	}
+
+	room.saveMsgsChan <- struct{}{}
+
+	msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
+}
+
 func (s *Service) ConnectByID(
 	w http.ResponseWriter,
 	r *http.Request,

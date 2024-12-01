@@ -2,10 +2,12 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
 )
 
 // @Summary		Create chat
@@ -119,6 +121,50 @@ func (a *API) GetAllActiveChats(w http.ResponseWriter, r *http.Request) {
 	for i, chat := range chats {
 		out[i].ID = chat.ID
 		out[i].Name = chat.Name
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(data)
+}
+
+// @Summary		Get chat message history
+// @Description	Prints 100 messages from chat
+// @Tags			Chats
+// @Produce		json
+// @Param			id	path		string	true	"Chat ID"
+// @Success		200	{array}		Message
+// @Failure		400	{object}	object
+// @Failure		500	{object}	object
+// @Router			/api/v1/chats/{id}/messages [get]
+func (a *API) GetChatMessages(w http.ResponseWriter, r *http.Request) {
+	chatID := r.PathValue("id")
+
+	msgs, err := a.chatService.GetMessages(r.Context(), chatID)
+	if err != nil {
+		if errors.Is(err, chatrepo.ErrChatNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	out := make([]Message, len(msgs))
+
+	for i, msg := range msgs {
+		out[i].ID = msg.ID
+		out[i].Author = msg.Author
+		out[i].ChatID = msg.ChatID
+		out[i].Content = msg.Content
+		out[i].CreatedAt = msg.Timestamp
+		out[i].IsEdited = msg.IsEdited
 	}
 
 	data, err := json.Marshal(out)

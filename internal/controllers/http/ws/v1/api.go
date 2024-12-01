@@ -15,6 +15,8 @@ type ChatService interface {
 	GetActiveChats(ctx context.Context) ([]models.Chat, error)
 	ConnectByID(w http.ResponseWriter, r *http.Request, chatID string, user *models.User) error
 	CreateChat(ctx context.Context, chat models.Chat) (string, error)
+
+	GetMessages(ctx context.Context, chatID string) ([]models.Message, error)
 }
 
 type UserService interface {
