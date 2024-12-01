@@ -163,7 +163,7 @@ func (a *API) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		out[i].Author = msg.Author
 		out[i].ChatID = msg.ChatID
 		out[i].Content = msg.Content
-		out[i].CreatedAt = msg.Timestamp
+		out[i].CreatedAt = msg.CreatedAt
 		out[i].IsEdited = msg.IsEdited
 	}
 

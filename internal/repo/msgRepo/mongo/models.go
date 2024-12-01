@@ -22,7 +22,7 @@ func FromMessage(msg models.Message) Message {
 		ChatID:    msg.ChatID,
 		Content:   msg.Content,
 		IsEdited:  msg.IsEdited,
-		CreatedAt: msg.Timestamp,
+		CreatedAt: msg.CreatedAt,
 	}
 }
 
@@ -43,7 +43,7 @@ func ToMessage(msg Message) models.Message {
 		ChatID:    msg.ChatID,
 		Content:   msg.Content,
 		IsEdited:  msg.IsEdited,
-		Timestamp: msg.CreatedAt,
+		CreatedAt: msg.CreatedAt,
 	}
 }
 

@@ -8,5 +8,5 @@ type Message struct {
 	ChatID    string
 	Content   string
 	IsEdited  bool
-	Timestamp time.Time
+	CreatedAt time.Time
 }

@@ -219,7 +219,7 @@ func (r *Room) Stop() {
 		ChatID:    r.ID,
 		Content:   "Room closed",
 		IsEdited:  false,
-		Timestamp: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}
 
 	data, err := systemMsg.Render()

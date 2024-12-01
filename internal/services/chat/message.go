@@ -14,7 +14,7 @@ type MessageDTO struct {
 	ChatID    string    `json:"chat_id"`
 	Content   string    `json:"content"`
 	IsEdited  bool      `json:"is_edited"`
-	Timestamp time.Time `json:"timestamp"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func NewMessage(client *Client, text string) *MessageDTO {
@@ -24,7 +24,7 @@ func NewMessage(client *Client, text string) *MessageDTO {
 		ChatID:    client.ChatRoom.ID,
 		Content:   text,
 		IsEdited:  false,
-		Timestamp: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}
 }
 
@@ -45,7 +45,7 @@ func FromMessage(msg models.Message) MessageDTO {
 		ChatID:    msg.ChatID,
 		Content:   msg.Content,
 		IsEdited:  msg.IsEdited,
-		Timestamp: msg.Timestamp,
+		CreatedAt: msg.CreatedAt,
 	}
 }
 
@@ -66,7 +66,7 @@ func ToMessage(msg MessageDTO) models.Message {
 		ChatID:    msg.ChatID,
 		Content:   msg.Content,
 		IsEdited:  msg.IsEdited,
-		Timestamp: msg.Timestamp,
+		CreatedAt: msg.CreatedAt,
 	}
 }
 
