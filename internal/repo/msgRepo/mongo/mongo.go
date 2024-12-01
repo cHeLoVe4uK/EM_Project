@@ -63,5 +63,12 @@ func (r *Repository) GetChatMessages(ctx context.Context, chatID string) ([]mode
 		return nil, err
 	}
 
-	return ToMessageBatch(msgs), nil
+	out := make([]Message, len(msgs))
+	j := len(msgs) - 1
+	for i := range msgs {
+		out[i] = msgs[j]
+		j--
+	}
+
+	return ToMessageBatch(out), nil
 }
