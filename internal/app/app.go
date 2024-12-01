@@ -8,10 +8,13 @@ import (
 	v1 "github.com/cHeLoVe4uK/EM_Project/internal/controllers/http/ws/v1"
 	chatRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/memory"
 	chatRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/mongo"
+	msgRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/msgRepo/memory"
 	userRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/memory"
 	userRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/mongo"
+
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/auth"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/chat"
+	"github.com/cHeLoVe4uK/EM_Project/internal/services/message"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/user"
 	"github.com/cHeLoVe4uK/EM_Project/pkg/connect"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -20,6 +23,7 @@ import (
 type App struct {
 	mongo    *mongo.Client
 	chatRepo chat.ChatRepository
+	msgRepo  message.Repository
 	userRepo user.Repository
 }
 
@@ -87,6 +91,8 @@ func (a *App) initRepos(ctx context.Context) error {
 
 	}
 
+	a.msgRepo = msgRepoMemory.New()
+
 	return nil
 }
 
@@ -106,7 +112,9 @@ func (a *App) initMongo(ctx context.Context) error {
 
 func (a *App) Run() error {
 
-	chatService := chat.NewService(context.Background(), nil, a.chatRepo)
+	msgService := message.New(a.msgRepo)
+
+	chatService := chat.NewService(context.Background(), msgService, a.chatRepo)
 
 	authService := auth.NewService()
 
