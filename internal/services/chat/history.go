@@ -92,7 +92,7 @@ func (h *History) Read() []MessageDTO {
 
 	for i := h.current; msgsToRead > 0; i-- {
 		if i == 0 {
-			i = 100
+			i = 99
 		}
 
 		out[msgsToRead-1] = h.msgs[i]
