@@ -12,6 +12,7 @@ import (
 	msgRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/msgRepo/mongo"
 	userRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/memory"
 	userRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo/mongo"
+	"github.com/meraiku/logging"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/auth"
 	"github.com/cHeLoVe4uK/EM_Project/internal/services/chat"
@@ -42,6 +43,7 @@ func (a *App) initDeps(ctx context.Context) error {
 
 	deps := []func(context.Context) error{
 		a.initConfig,
+		a.initLogger,
 		a.initRepos,
 	}
 
@@ -57,6 +59,16 @@ func (a *App) initDeps(ctx context.Context) error {
 func (a *App) initConfig(_ context.Context) error {
 
 	config.Load()
+
+	return nil
+}
+
+func (a *App) initLogger(_ context.Context) error {
+	logging.NewLogger(
+		logging.WithJSON(false),
+		logging.WithLevel(logging.LevelDebug),
+		logging.WithSource(false),
+	)
 
 	return nil
 }
