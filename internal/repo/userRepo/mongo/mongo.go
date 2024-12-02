@@ -42,6 +42,9 @@ func (r *Repository) CreateUser(ctx context.Context, user models.User) (string, 
 
 	_, err := r.collection.InsertOne(ctx, repoUser)
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return "", userrepo.ErrUserAlreadyExists
+		}
 		return "", err
 	}
 

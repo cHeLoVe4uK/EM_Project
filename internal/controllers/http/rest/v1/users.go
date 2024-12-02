@@ -1,11 +1,13 @@
 package v1
 
 import (
-	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	userrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo"
+	"github.com/labstack/echo/v4"
 )
 
 // @Summary		Create New User
@@ -17,15 +19,12 @@ import (
 // @Failure		422		{object}	object
 // @Failure		500		{object}	object
 // @Router			/api/v1/users [post]
-func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) CreateUser(c echo.Context) error {
 
 	var req CreateUserRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
-		w.WriteHeader(http.StatusUnprocessableEntity)
-
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
 	user, err := models.NewUser(
@@ -34,29 +33,22 @@ func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 		req.Password,
 	)
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
-	id, err := a.userService.Create(r.Context(), user)
+	id, err := a.userService.Create(c.Request().Context(), user)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		if errors.Is(err, userrepo.ErrUserAlreadyExists) {
+			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
+		}
+		return err
 	}
 
 	var res CreateUserResponse
 
 	res.ID = id
 
-	data, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	w.Write(data)
+	return c.JSON(http.StatusCreated, res)
 }
 
 // @Summary		Create New User
@@ -68,18 +60,15 @@ func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Failure		422		{object}	object
 // @Failure		500		{object}	object
 // @Router			/api/v1/users/login [post]
-func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) LoginUser(c echo.Context) error {
 	log := slog.With(
 		slog.String("op", "LoginUser"),
 	)
 
 	var req LoginUserRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
-		w.WriteHeader(http.StatusUnprocessableEntity)
-
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
 	user := models.User{
@@ -89,14 +78,13 @@ func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("login user", slog.String("email", user.Email))
 
-	token, err := a.userService.Login(r.Context(), user)
+	token, err := a.userService.Login(c.Request().Context(), user)
 	if err != nil {
 		log.Error(
 			"failed to login user",
 			slog.Any("error", err),
 		)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	log.Debug("user logged in", slog.String("token", token.Token))
@@ -105,14 +93,5 @@ func (a *API) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	res.Token = token.Token
 
-	data, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	w.Write(data)
-
+	return c.JSON(http.StatusOK, res)
 }

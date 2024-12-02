@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 var (
@@ -21,7 +21,7 @@ func NewChat(name string) (Chat, error) {
 	}
 
 	return Chat{
-		ID:   primitive.NewObjectID().String(),
+		ID:   uuid.New().String(),
 		Name: name,
 	}, nil
 }

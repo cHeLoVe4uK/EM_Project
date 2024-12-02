@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/config"
-	v1 "github.com/cHeLoVe4uK/EM_Project/internal/controllers/http/ws/v1"
+	v1 "github.com/cHeLoVe4uK/EM_Project/internal/controllers/http/rest/v1"
 	chatRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/memory"
 	chatRepoMongo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo/mongo"
 	msgRepoMemory "github.com/cHeLoVe4uK/EM_Project/internal/repo/msgRepo/memory"

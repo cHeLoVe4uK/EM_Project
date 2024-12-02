@@ -2,21 +2,17 @@ package v1
 
 import "time"
 
-type CreateChatResponse struct {
-	ID string `json:"id"`
-}
-
-type CreateUserResponse struct {
-	ID string `json:"id"`
-}
-
-type LoginUserResponse struct {
-	Token string `json:"token"`
-}
-
 type Chat struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type CreateChatRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type CreateChatResponse struct {
+	ID string `json:"id"`
 }
 
 type Message struct {

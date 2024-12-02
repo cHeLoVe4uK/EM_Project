@@ -62,7 +62,7 @@ func (s *Service) Create(ctx context.Context, user models.User) (string, error) 
 
 	out, err := s.repo.CreateUser(ctx, user)
 	if err != nil {
-		return "", fmt.Errorf("create user in repo: %w", err)
+		return "", fmt.Errorf("create user: %w", err)
 	}
 
 	return out, nil

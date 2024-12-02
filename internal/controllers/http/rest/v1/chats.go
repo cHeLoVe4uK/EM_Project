@@ -1,13 +1,13 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
+	"github.com/labstack/echo/v4"
 )
 
 // @Summary		Create chat
@@ -20,15 +20,12 @@ import (
 // @Failure		400		{object}	object
 // @Failure		500		{object}	object
 // @Router			/api/v1/chats [post]
-func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
+func (a *API) CreateChat(c echo.Context) error {
 
 	var req CreateChatRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
-		w.WriteHeader(http.StatusUnprocessableEntity)
-
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
 	chat := models.Chat{
@@ -37,14 +34,12 @@ func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 
 	slog.Debug("creating chat", slog.String("chat_name", chat.Name))
 
-	chatId, err := a.chatService.CreateChat(r.Context(), chat)
+	chatId, err := a.chatService.CreateChat(c.Request().Context(), chat)
 	if err != nil {
 
 		slog.Error("creating chat", slog.Any("error", err))
 
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return err
 	}
 
 	slog.Debug("chat created", slog.String("chat_id", chatId))
@@ -53,17 +48,7 @@ func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 		ID: chatId,
 	}
 
-	data, err := json.Marshal(resp)
-	if err != nil {
-
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	w.Write(data)
+	return c.JSON(http.StatusOK, resp)
 }
 
 // @Summary		Get all chats
@@ -74,12 +59,11 @@ func (a *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 // @Failure		400	{object}	object
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats [get]
-func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetAllChats(c echo.Context) error {
 
-	chats, err := a.chatService.GetAllChats(r.Context())
+	chats, err := a.chatService.GetAllChats(c.Request().Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	out := make([]Chat, len(chats))
@@ -89,15 +73,7 @@ func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
 		out[i].Name = chat.Name
 	}
 
-	data, err := json.Marshal(out)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	w.Write(data)
+	return c.JSON(http.StatusOK, out)
 }
 
 // @Summary		Get all active chats
@@ -108,12 +84,11 @@ func (a *API) GetAllChats(w http.ResponseWriter, r *http.Request) {
 // @Failure		400	{object}	object
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats/active [get]
-func (a *API) GetAllActiveChats(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetAllActiveChats(c echo.Context) error {
 
-	chats, err := a.chatService.GetActiveChats(r.Context())
+	chats, err := a.chatService.GetActiveChats(c.Request().Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	out := make([]Chat, len(chats))
@@ -123,15 +98,7 @@ func (a *API) GetAllActiveChats(w http.ResponseWriter, r *http.Request) {
 		out[i].Name = chat.Name
 	}
 
-	data, err := json.Marshal(out)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	w.Write(data)
+	return c.JSON(http.StatusOK, out)
 }
 
 // @Summary		Get chat message history
@@ -143,17 +110,16 @@ func (a *API) GetAllActiveChats(w http.ResponseWriter, r *http.Request) {
 // @Failure		400	{object}	object
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats/{id}/messages [get]
-func (a *API) GetChatMessages(w http.ResponseWriter, r *http.Request) {
-	chatID := r.PathValue("id")
+func (a *API) GetChatMessages(c echo.Context) error {
+	chatID := c.Param("id")
 
-	msgs, err := a.chatService.GetMessages(r.Context(), chatID)
+	msgs, err := a.chatService.GetMessages(c.Request().Context(), chatID)
 	if err != nil {
 		if errors.Is(err, chatrepo.ErrChatNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			return
+			return c.JSON(http.StatusNotFound, err)
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+
+		return err
 	}
 
 	out := make([]Message, len(msgs))
@@ -167,13 +133,5 @@ func (a *API) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		out[i].IsEdited = msg.IsEdited
 	}
 
-	data, err := json.Marshal(out)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	w.Write(data)
+	return c.JSON(http.StatusOK, out)
 }

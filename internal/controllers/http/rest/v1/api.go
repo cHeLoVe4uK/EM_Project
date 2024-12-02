@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/labstack/echo/v4"
 )
 
 type ChatService interface {
@@ -44,11 +46,17 @@ func (a *API) Run() error {
 
 	host := os.Getenv("HOST")
 
+	e := echo.New()
+
 	addr := net.JoinHostPort(host, port)
 
+	a.routes(e)
+
 	srv := http.Server{
-		Addr:    addr,
-		Handler: a.routes(),
+		Addr:         addr,
+		Handler:      e,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 15 * time.Second,
 	}
 
 	slog.Info("server started", slog.String("addr", addr))

@@ -7,27 +7,27 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
-//	@Summary		Upgrade http connection
-//	@Description	Upgrades http connection to websocket
-//	@Tags			Chats
-//	@Produce		json
-//	@Param			id	path		string	true	"Chat ID"
-//	@Failure		422	{object}	object
-//	@Failure		500	{object}	object
-//	@Router			/api/v1/chats/{id}/connect [get]
-func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
+// @Summary		Upgrade http connection
+// @Description	Upgrades http connection to websocket
+// @Tags			Chats
+// @Produce		json
+// @Param			id	path		string	true	"Chat ID"
+// @Failure		422	{object}	object
+// @Failure		500	{object}	object
+// @Router			/api/v1/chats/{id}/connect [get]
+func (a *API) ConnectChat(c echo.Context) error {
 
 	slog.Debug("decoding request")
 
-	chatID := r.PathValue("id")
+	chatID := c.Param("id")
 
 	if chatID == "" {
 		slog.Error("chat id is empty")
 
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
+		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
 
 	username := gofakeit.Username()
@@ -45,13 +45,13 @@ func (a *API) ConnectChat(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("connecting to chat")
 
-	if err := a.chatService.ConnectByID(w, r, chatID, user); err != nil {
+	if err := a.chatService.ConnectByID(c.Response().Writer, c.Request(), chatID, user); err != nil {
 		log.Error("connecting to chat", slog.Any("error", err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	log.Info(
 		"user connected",
 	)
+	return nil
 }
