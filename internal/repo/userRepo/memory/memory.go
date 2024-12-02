@@ -37,6 +37,15 @@ func (r *Repository) CreateUser(_ context.Context, user models.User) (string, er
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	for _, u := range r.users {
+		if u.Email == user.Email {
+			return "", userrepo.ErrUserAlreadyExists
+		}
+		if u.Username == user.Username {
+			return "", userrepo.ErrUserAlreadyExists
+		}
+	}
+
 	r.users[user.ID] = user
 
 	return user.ID, nil

@@ -40,6 +40,12 @@ func New(db *mongo.Database) (*Repository, error) {
 func (r *Repository) CreateUser(ctx context.Context, user models.User) (string, error) {
 	repoUser := FromUser(user)
 
+	filter := bson.M{"username": repoUser.Username}
+
+	if err := r.collection.FindOne(ctx, filter).Err(); err == nil {
+		return "", userrepo.ErrUserAlreadyExists
+	}
+
 	_, err := r.collection.InsertOne(ctx, repoUser)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
