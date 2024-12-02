@@ -13,19 +13,14 @@ export interface RequestCreateChat {
   name: string;
 }
 
-export interface RequestDeleteChat {
-  chat_id: string;
-}
-
-export interface RequestConnectToChat {
-  chat_id: string;
-}
-
 export interface ResponseCreateChat {
   id: string;
 }
 
-export interface ErrResponse {
-  error: string;
-  msg: string;
+export interface Message {
+  id: string;
+  author: string;
+  content: string;
+  created_at: string; // Дата в формате ISO
+  is_edited: boolean;
 }

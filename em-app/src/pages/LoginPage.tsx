@@ -1,8 +1,6 @@
 import React from "react";
-import { LoginForm } from "../components/Form";
 import { message, Button, Form, Input } from "antd";
 import { useNavigate } from "react-router-dom";
-import { GithubOutlined } from "@ant-design/icons";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
