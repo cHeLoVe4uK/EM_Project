@@ -167,6 +167,8 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 		logging.String("chat_id", chatID),
 	)
 
+	ctx = logging.ContextWithLogger(ctx, log)
+
 	log.Debug("get chat from repository")
 
 	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
@@ -178,19 +180,17 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 
 	room, ok := s.ActiveChats[chatID]
 	if !ok {
-		log.Debug("direct search in repository")
+		log.Debug("search for innactive room")
+
 		msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
 		if err != nil {
-			return nil, fmt.Errorf("get chat messages: %w", err)
+			return nil, err
 		}
-
-		log.Debug(
-			"messages got",
-			logging.Int("messages_count", len(msgs)),
-		)
 
 		return msgs, nil
 	}
+
+	log.Debug("search for active room")
 
 	log.Debug("stashing messages")
 
@@ -198,11 +198,9 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 		return nil, fmt.Errorf("stash history: %w", err)
 	}
 
-	log.Debug("getting messages from repository")
-
 	msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
 	if err != nil {
-		return nil, fmt.Errorf("get chat messages: %w", err)
+		return nil, err
 	}
 
 	log.Debug(

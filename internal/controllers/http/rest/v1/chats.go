@@ -71,9 +71,7 @@ func (a *API) GetAllChats(c echo.Context) error {
 
 	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	c.SetRequest(c.Request().WithContext(ctx))
-
-	chats, err := a.chatService.GetAllChats(c.Request().Context())
+	chats, err := a.chatService.GetAllChats(ctx)
 	if err != nil {
 		return err
 	}
@@ -105,9 +103,7 @@ func (a *API) GetAllActiveChats(c echo.Context) error {
 
 	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	c.SetRequest(c.Request().WithContext(ctx))
-
-	chats, err := a.chatService.GetActiveChats(c.Request().Context())
+	chats, err := a.chatService.GetActiveChats(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,11 +137,9 @@ func (a *API) GetChatMessages(c echo.Context) error {
 		logging.String("chat_id", chatID),
 	)
 
-	logging.ContextWithLogger(c.Request().Context(), log)
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	c.SetRequest(c.Request().WithContext(c.Request().Context()))
-
-	msgs, err := a.chatService.GetMessages(c.Request().Context(), chatID)
+	msgs, err := a.chatService.GetMessages(ctx, chatID)
 	if err != nil {
 		if errors.Is(err, chatrepo.ErrChatNotFound) {
 			return c.JSON(http.StatusNotFound, err)
