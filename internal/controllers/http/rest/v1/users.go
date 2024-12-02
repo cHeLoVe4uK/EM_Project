@@ -2,12 +2,12 @@ package v1
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	userrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo"
 	"github.com/labstack/echo/v4"
+	"github.com/meraiku/logging"
 )
 
 // @Summary		Create New User
@@ -21,11 +21,26 @@ import (
 // @Router			/api/v1/users [post]
 func (a *API) CreateUser(c echo.Context) error {
 
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "CreateUser"),
+	)
+
 	var req CreateUserRequest
+
+	log.Debug("binding request")
 
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
+
+	log = logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("email", req.Email),
+		logging.String("username", req.Username),
+	)
+
+	log.Debug("creating user model")
 
 	user, err := models.NewUser(
 		req.Email,
@@ -36,7 +51,9 @@ func (a *API) CreateUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
-	id, err := a.userService.Create(c.Request().Context(), user)
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
+	id, err := a.userService.Create(ctx, user)
 	if err != nil {
 		if errors.Is(err, userrepo.ErrUserAlreadyExists) {
 			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
@@ -61,33 +78,37 @@ func (a *API) CreateUser(c echo.Context) error {
 // @Failure		500		{object}	object
 // @Router			/api/v1/users/login [post]
 func (a *API) LoginUser(c echo.Context) error {
-	log := slog.With(
-		slog.String("op", "LoginUser"),
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "LoginUser"),
 	)
 
 	var req LoginUserRequest
 
+	log.Debug("binding request")
+
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
+
+	log = logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("email", req.Email),
+	)
+
+	log.Debug("creating user model")
 
 	user := models.User{
 		Email:    req.Email,
 		Password: req.Password,
 	}
 
-	log.Debug("login user", slog.String("email", user.Email))
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	token, err := a.userService.Login(c.Request().Context(), user)
+	token, err := a.userService.Login(ctx, user)
 	if err != nil {
-		log.Error(
-			"failed to login user",
-			slog.Any("error", err),
-		)
 		return err
 	}
-
-	log.Debug("user logged in", slog.String("token", token.Token))
 
 	var res LoginUserResponse
 

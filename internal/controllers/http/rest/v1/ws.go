@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -23,7 +22,7 @@ func (a *API) ConnectChat(c echo.Context) error {
 
 	log := logging.WithAttrs(
 		c.Request().Context(),
-		slog.String("op", "ConnectChat"),
+		logging.String("op", "ConnectChat"),
 	)
 
 	log.Debug("decoding request")
@@ -31,9 +30,7 @@ func (a *API) ConnectChat(c echo.Context) error {
 	chatID := c.Param("id")
 
 	if chatID == "" {
-		log.Error("chat id is empty")
-
-		return echo.NewHTTPError(http.StatusUnprocessableEntity)
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, "chat id is empty")
 	}
 
 	username := gofakeit.Username()
@@ -44,8 +41,7 @@ func (a *API) ConnectChat(c echo.Context) error {
 	}
 
 	if err := a.chatService.ConnectByID(c.Response().Writer, c.Request(), chatID, user); err != nil {
-		log.Error("connecting to chat", slog.Any("error", err))
-		return c.JSON(http.StatusInternalServerError, err)
+		return err
 	}
 
 	return nil
