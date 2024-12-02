@@ -9,22 +9,24 @@ import (
 )
 
 type MessageDTO struct {
-	ID        string    `json:"id"`
-	Author    string    `json:"author"`
-	ChatID    string    `json:"chat_id"`
-	Content   string    `json:"content"`
-	IsEdited  bool      `json:"is_edited"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string    `json:"id"`
+	AuthorID   string    `json:"author_id"`
+	AuthorName string    `json:"author_name"`
+	ChatID     string    `json:"chat_id"`
+	Content    string    `json:"content"`
+	IsEdited   bool      `json:"is_edited"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func NewMessage(client *Client, text string) *MessageDTO {
 	return &MessageDTO{
-		ID:        uuid.NewString(),
-		Author:    client.ID,
-		ChatID:    client.ChatRoom.ID,
-		Content:   text,
-		IsEdited:  false,
-		CreatedAt: time.Now().UTC(),
+		ID:         uuid.NewString(),
+		AuthorID:   client.ID,
+		AuthorName: client.Username,
+		ChatID:     client.ChatRoom.ID,
+		Content:    text,
+		IsEdited:   false,
+		CreatedAt:  time.Now().UTC(),
 	}
 }
 
@@ -40,12 +42,13 @@ func (msg *MessageDTO) Render() ([]byte, error) {
 
 func FromMessage(msg models.Message) MessageDTO {
 	return MessageDTO{
-		ID:        msg.ID,
-		Author:    msg.Author,
-		ChatID:    msg.ChatID,
-		Content:   msg.Content,
-		IsEdited:  msg.IsEdited,
-		CreatedAt: msg.CreatedAt,
+		ID:         msg.ID,
+		AuthorID:   msg.AuthorID,
+		AuthorName: msg.AuthorName,
+		ChatID:     msg.ChatID,
+		Content:    msg.Content,
+		IsEdited:   msg.IsEdited,
+		CreatedAt:  msg.CreatedAt,
 	}
 }
 
@@ -61,12 +64,13 @@ func FromMessageBatch(msgs []models.Message) []MessageDTO {
 
 func ToMessage(msg MessageDTO) models.Message {
 	return models.Message{
-		ID:        msg.ID,
-		Author:    msg.Author,
-		ChatID:    msg.ChatID,
-		Content:   msg.Content,
-		IsEdited:  msg.IsEdited,
-		CreatedAt: msg.CreatedAt,
+		ID:         msg.ID,
+		AuthorID:   msg.AuthorID,
+		AuthorName: msg.AuthorName,
+		ChatID:     msg.ChatID,
+		Content:    msg.Content,
+		IsEdited:   msg.IsEdited,
+		CreatedAt:  msg.CreatedAt,
 	}
 }
 

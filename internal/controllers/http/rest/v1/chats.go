@@ -152,7 +152,8 @@ func (a *API) GetChatMessages(c echo.Context) error {
 
 	for i, msg := range msgs {
 		out[i].ID = msg.ID
-		out[i].Author = msg.Author
+		out[i].AuthorID = msg.AuthorID
+		out[i].AuthorName = msg.AuthorName
 		out[i].ChatID = msg.ChatID
 		out[i].Content = msg.Content
 		out[i].CreatedAt = msg.CreatedAt

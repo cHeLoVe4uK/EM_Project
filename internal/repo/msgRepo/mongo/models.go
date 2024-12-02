@@ -7,22 +7,24 @@ import (
 )
 
 type Message struct {
-	ID        string    `bson:"id"`
-	Author    string    `bson:"author"`
-	ChatID    string    `bson:"chat_id"`
-	Content   string    `bson:"content"`
-	IsEdited  bool      `bson:"is_edited"`
-	CreatedAt time.Time `bson:"created_at"`
+	ID         string    `bson:"id"`
+	AuthorID   string    `bson:"author_id"`
+	AuthorName string    `bson:"author_name"`
+	ChatID     string    `bson:"chat_id"`
+	Content    string    `bson:"content"`
+	IsEdited   bool      `bson:"is_edited"`
+	CreatedAt  time.Time `bson:"created_at"`
 }
 
 func FromMessage(msg models.Message) Message {
 	return Message{
-		ID:        msg.ID,
-		Author:    msg.Author,
-		ChatID:    msg.ChatID,
-		Content:   msg.Content,
-		IsEdited:  msg.IsEdited,
-		CreatedAt: msg.CreatedAt,
+		ID:         msg.ID,
+		AuthorID:   msg.AuthorID,
+		AuthorName: msg.AuthorName,
+		ChatID:     msg.ChatID,
+		Content:    msg.Content,
+		IsEdited:   msg.IsEdited,
+		CreatedAt:  msg.CreatedAt,
 	}
 }
 
@@ -38,12 +40,13 @@ func FromMessageBatch(msgs []models.Message) []Message {
 
 func ToMessage(msg Message) models.Message {
 	return models.Message{
-		ID:        msg.ID,
-		Author:    msg.Author,
-		ChatID:    msg.ChatID,
-		Content:   msg.Content,
-		IsEdited:  msg.IsEdited,
-		CreatedAt: msg.CreatedAt,
+		ID:         msg.ID,
+		AuthorID:   msg.AuthorID,
+		AuthorName: msg.AuthorName,
+		ChatID:     msg.ChatID,
+		Content:    msg.Content,
+		IsEdited:   msg.IsEdited,
+		CreatedAt:  msg.CreatedAt,
 	}
 }
 
