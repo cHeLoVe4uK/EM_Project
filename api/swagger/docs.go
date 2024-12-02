@@ -38,7 +38,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -50,7 +50,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates new chat, runs in background and returns chat ID",
+                "description": "Creates new chat, runs it in background and returns chat ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -79,10 +79,10 @@ const docTemplate = `{
                             "$ref": "#/definitions/v1.CreateChatResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -117,7 +117,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -196,7 +196,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -239,7 +245,7 @@ const docTemplate = `{
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -253,14 +259,14 @@ const docTemplate = `{
         },
         "/api/v1/users/login": {
             "post": {
-                "description": "Creates nes User, return his ID",
+                "description": "Login User, returns token",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Users"
                 ],
-                "summary": "Create New User",
+                "summary": "Login User",
                 "parameters": [
                     {
                         "description": "User login data",
@@ -282,7 +288,7 @@ const docTemplate = `{
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/v1.HTTPError"
                         }
                     },
                     "500": {
@@ -300,18 +306,24 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "UUID"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Best chat name!"
                 }
             }
         },
         "v1.CreateChatRequest": {
             "type": "object",
+            "required": [
+                "name"
+            ],
             "properties": {
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Best chat name!"
                 }
             }
         },
@@ -319,21 +331,30 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "UUID"
                 }
             }
         },
         "v1.CreateUserRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "example@gmail.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "secret1234!"
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Username"
                 }
             }
         },
@@ -341,18 +362,34 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "UUID"
+                }
+            }
+        },
+        "v1.HTTPError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "error description"
                 }
             }
         },
         "v1.LoginUserRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "example@gmail.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "secret1234!"
                 }
             }
         },
@@ -360,30 +397,41 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "JWT token"
                 }
             }
         },
         "v1.Message": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
+                "author_id": {
+                    "type": "string",
+                    "example": "UUID"
+                },
+                "author_name": {
+                    "type": "string",
+                    "example": "Username"
                 },
                 "chat_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "UUID"
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Hello world!"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2022-05-01T00:00:00Z"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "UUID"
                 },
                 "is_edited": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": false
                 }
             }
         }

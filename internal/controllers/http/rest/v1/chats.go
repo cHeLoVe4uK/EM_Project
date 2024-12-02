@@ -11,13 +11,13 @@ import (
 )
 
 // @Summary		Create chat
-// @Description	Creates new chat, runs in background and returns chat ID
+// @Description	Creates new chat, runs it in background and returns chat ID
 // @Tags			Chats
 // @Accept			json
 // @Produce		json
 // @Param			chat	body		CreateChatRequest	true	"Chat name"
 // @Success		200		{object}	CreateChatResponse
-// @Failure		400		{object}	object
+// @Failure		422		{object}	HTTPError
 // @Failure		500		{object}	object
 // @Router			/api/v1/chats [post]
 func (a *API) CreateChat(c echo.Context) error {
@@ -59,7 +59,7 @@ func (a *API) CreateChat(c echo.Context) error {
 // @Tags			Chats
 // @Produce		json
 // @Success		200	{array}		Chat
-// @Failure		400	{object}	object
+// @Failure		400	{object}	HTTPError
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats [get]
 func (a *API) GetAllChats(c echo.Context) error {
@@ -91,7 +91,7 @@ func (a *API) GetAllChats(c echo.Context) error {
 // @Tags			Chats
 // @Produce		json
 // @Success		200	{array}		Chat
-// @Failure		400	{object}	object
+// @Failure		400	{object}	HTTPError
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats/active [get]
 func (a *API) GetAllActiveChats(c echo.Context) error {
@@ -124,7 +124,8 @@ func (a *API) GetAllActiveChats(c echo.Context) error {
 // @Produce		json
 // @Param			id	path		string	true	"Chat ID"
 // @Success		200	{array}		Message
-// @Failure		400	{object}	object
+// @Failure		400	{object}	HTTPError
+// @Failure		404	{object}	HTTPError
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats/{id}/messages [get]
 func (a *API) GetChatMessages(c echo.Context) error {
@@ -142,7 +143,7 @@ func (a *API) GetChatMessages(c echo.Context) error {
 	msgs, err := a.chatService.GetMessages(ctx, chatID)
 	if err != nil {
 		if errors.Is(err, chatrepo.ErrChatNotFound) {
-			return c.JSON(http.StatusNotFound, err)
+			return echo.NewHTTPError(http.StatusNotFound, err)
 		}
 
 		return err

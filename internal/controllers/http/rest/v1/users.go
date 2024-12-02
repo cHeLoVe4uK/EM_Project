@@ -2,7 +2,9 @@ package v1
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"net/mail"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	userrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/userRepo"
@@ -16,7 +18,7 @@ import (
 // @Produce		json
 // @Param			user	body		CreateUserRequest	true	"User data"
 // @Success		201		{object}	CreateUserResponse
-// @Failure		422		{object}	object
+// @Failure		422		{object}	HTTPError
 // @Failure		500		{object}	object
 // @Router			/api/v1/users [post]
 func (a *API) CreateUser(c echo.Context) error {
@@ -68,13 +70,13 @@ func (a *API) CreateUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, res)
 }
 
-// @Summary		Create New User
-// @Description	Creates nes User, return his ID
+// @Summary		Login User
+// @Description	Login User, returns token
 // @Tags			Users
 // @Produce		json
 // @Param			user	body		LoginUserRequest	true	"User login data"
 // @Success		200		{object}	LoginUserResponse
-// @Failure		422		{object}	object
+// @Failure		422		{object}	HTTPError
 // @Failure		500		{object}	object
 // @Router			/api/v1/users/login [post]
 func (a *API) LoginUser(c echo.Context) error {
@@ -98,8 +100,13 @@ func (a *API) LoginUser(c echo.Context) error {
 
 	log.Debug("creating user model")
 
+	email, err := mail.ParseAddress(req.Email)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("invalid email: %w", err))
+	}
+
 	user := models.User{
-		Email:    req.Email,
+		Email:    email.String(),
 		Password: req.Password,
 	}
 
