@@ -229,12 +229,12 @@ func (r *Room) Stop() {
 	log.Info("recieve close signal")
 
 	systemMsg := MessageDTO{
-		ID:        uuid.NewString(),
-		Author:    "System",
-		ChatID:    r.ID,
-		Content:   "Room closed",
-		IsEdited:  false,
-		CreatedAt: time.Now().UTC(),
+		ID:         uuid.NewString(),
+		AuthorName: "System",
+		ChatID:     r.ID,
+		Content:    "Room closed",
+		IsEdited:   false,
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	data, err := systemMsg.Render()

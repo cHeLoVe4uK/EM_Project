@@ -2,6 +2,8 @@ package models
 
 import (
 	"errors"
+	"fmt"
+	"net/mail"
 
 	"github.com/google/uuid"
 )
@@ -23,13 +25,18 @@ func NewUser(
 	password string,
 ) (User, error) {
 
-	if email == "" || username == "" || password == "" {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return User{}, fmt.Errorf("invalid email: %w", err)
+	}
+
+	if username == "" || password == "" {
 		return User{}, ErrInvalidData
 	}
 
 	u := User{
 		ID:       uuid.NewString(),
-		Email:    email,
+		Email:    addr.String(),
 		Username: username,
 		Password: password,
 	}
