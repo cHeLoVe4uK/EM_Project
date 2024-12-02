@@ -8,6 +8,7 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/meraiku/logging"
 )
 
 // @Summary		Upgrade http connection
@@ -20,12 +21,17 @@ import (
 // @Router			/api/v1/chats/{id}/connect [get]
 func (a *API) ConnectChat(c echo.Context) error {
 
-	slog.Debug("decoding request")
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		slog.String("op", "ConnectChat"),
+	)
+
+	log.Debug("decoding request")
 
 	chatID := c.Param("id")
 
 	if chatID == "" {
-		slog.Error("chat id is empty")
+		log.Error("chat id is empty")
 
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
@@ -37,21 +43,10 @@ func (a *API) ConnectChat(c echo.Context) error {
 		Username: username,
 	}
 
-	log := slog.With(
-		slog.String("user_id", user.ID),
-		slog.String("username", user.Username),
-		slog.String("chat_id", chatID),
-	)
-
-	log.Debug("connecting to chat")
-
 	if err := a.chatService.ConnectByID(c.Response().Writer, c.Request(), chatID, user); err != nil {
 		log.Error("connecting to chat", slog.Any("error", err))
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	log.Info(
-		"user connected",
-	)
 	return nil
 }

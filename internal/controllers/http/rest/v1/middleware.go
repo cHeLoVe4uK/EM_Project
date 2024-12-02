@@ -1,10 +1,11 @@
 package v1
 
 import (
-	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/meraiku/logging"
 )
 
 func (a *API) corsMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
@@ -23,12 +24,28 @@ func (a *API) corsMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (a *API) loggingMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		reqID := uuid.New().String()
 
-		slog.Info("request", slog.String("method", c.Request().Method), slog.String("path", c.Request().URL.Path))
+		log := logging.WithAttrs(
+			c.Request().Context(),
+			logging.String("request_id", reqID),
+		)
+
+		ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
+		log.Info(
+			"request",
+			logging.String("method", c.Request().Method),
+			logging.String("path", c.Request().URL.Path),
+		)
+
+		r := c.Request().WithContext(ctx)
+
+		c.SetRequest(r)
 
 		err := next(c)
 		if err != nil {
-			slog.Error("request error", slog.Any("error", err))
+			log.Error("request error", logging.Err(err))
 			return err
 		}
 

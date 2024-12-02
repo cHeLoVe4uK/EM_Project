@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log/slog"
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/gorilla/websocket"
+	"github.com/meraiku/logging"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,12 +19,17 @@ type Client struct {
 
 	conn    *websocket.Conn
 	recieve chan []*websocket.PreparedMessage
+
+	ctx context.Context
 }
 
 func NewClient(user models.User) *Client {
+	ctx := context.Background()
+
 	return &Client{
 		User:    user,
 		recieve: make(chan []*websocket.PreparedMessage),
+		ctx:     ctx,
 	}
 }
 
@@ -34,15 +39,11 @@ func (c *Client) StartSession(ctx context.Context) error {
 		c.conn = nil
 	}()
 
-	log := slog.With(
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := logging.L(ctx)
 
-	log.Info(
-		"starting new session",
-	)
+	c.ctx = ctx
+
+	log.Info("start new session")
 
 	gr, ctx := errgroup.WithContext(ctx)
 
@@ -50,9 +51,8 @@ func (c *Client) StartSession(ctx context.Context) error {
 	gr.Go(c.write)
 
 	if err := gr.Wait(); err != nil {
-		log.Info(
-			"session closed",
-		)
+		log.Info("session closed")
+
 		return err
 	}
 
@@ -65,16 +65,11 @@ func (c *Client) addConnection(conn *websocket.Conn) {
 
 func (c *Client) read() error {
 	ticker := time.NewTicker(pingPeriod)
-
 	defer func() {
 		ticker.Stop()
 	}()
 
-	log := slog.With(
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := logging.L(c.ctx)
 
 	for {
 		select {
@@ -91,7 +86,7 @@ func (c *Client) read() error {
 				if err := c.conn.WritePreparedMessage(msg); err != nil {
 					log.Warn(
 						"write message",
-						slog.Any("error", err),
+						logging.Err(err),
 					)
 				}
 			}
@@ -99,13 +94,14 @@ func (c *Client) read() error {
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
-			log.Debug(
-				"ping client",
-			)
+			log.Debug("send ping")
 
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Error("send ping", logging.Err(err))
 				return ErrClientNotAvailable
 			}
+
+			log.Debug("ping sent")
 		}
 	}
 }
@@ -119,11 +115,7 @@ func (c *Client) write() error {
 		return nil
 	})
 
-	log := slog.With(
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := logging.L(c.ctx)
 
 	for {
 		_, text, err := c.conn.ReadMessage()
@@ -131,7 +123,7 @@ func (c *Client) write() error {
 
 			log.Error(
 				"read message",
-				slog.Any("error", err),
+				logging.Err(err),
 			)
 
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -147,7 +139,7 @@ func (c *Client) write() error {
 		if err != nil {
 			log.Warn(
 				"decoding message",
-				slog.Any("error", err),
+				logging.Err(err),
 			)
 			continue
 		}
@@ -180,6 +172,7 @@ func (c *Client) SendBatch(msgs []*websocket.PreparedMessage) error {
 
 func (c *Client) Close() {
 	if c.conn != nil {
+		logging.L(c.ctx).Info("closing client connection")
 		c.conn.Close()
 	}
 }

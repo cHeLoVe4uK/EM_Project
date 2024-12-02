@@ -2,12 +2,12 @@ package v1
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	chatrepo "github.com/cHeLoVe4uK/EM_Project/internal/repo/chatRepo"
 	"github.com/labstack/echo/v4"
+	"github.com/meraiku/logging"
 )
 
 // @Summary		Create chat
@@ -22,27 +22,30 @@ import (
 // @Router			/api/v1/chats [post]
 func (a *API) CreateChat(c echo.Context) error {
 
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "CreateChat"),
+	)
+
 	var req CreateChatRequest
+
+	log.Debug("binding request")
 
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
-	chat := models.Chat{
-		Name: req.Name,
+	chat, err := models.NewChat(req.Name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
-
-	slog.Debug("creating chat", slog.String("chat_name", chat.Name))
 
 	chatId, err := a.chatService.CreateChat(c.Request().Context(), chat)
 	if err != nil {
-
-		slog.Error("creating chat", slog.Any("error", err))
-
 		return err
 	}
 
-	slog.Debug("chat created", slog.String("chat_id", chatId))
+	log.Debug("chat created", logging.String("chat_id", chatId))
 
 	resp := CreateChatResponse{
 		ID: chatId,
@@ -60,6 +63,15 @@ func (a *API) CreateChat(c echo.Context) error {
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats [get]
 func (a *API) GetAllChats(c echo.Context) error {
+
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "GetAllChats"),
+	)
+
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
+	c.SetRequest(c.Request().WithContext(ctx))
 
 	chats, err := a.chatService.GetAllChats(c.Request().Context())
 	if err != nil {
@@ -86,6 +98,15 @@ func (a *API) GetAllChats(c echo.Context) error {
 // @Router			/api/v1/chats/active [get]
 func (a *API) GetAllActiveChats(c echo.Context) error {
 
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "GetAllActiveChats"),
+	)
+
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
+	c.SetRequest(c.Request().WithContext(ctx))
+
 	chats, err := a.chatService.GetActiveChats(c.Request().Context())
 	if err != nil {
 		return err
@@ -111,7 +132,18 @@ func (a *API) GetAllActiveChats(c echo.Context) error {
 // @Failure		500	{object}	object
 // @Router			/api/v1/chats/{id}/messages [get]
 func (a *API) GetChatMessages(c echo.Context) error {
+
 	chatID := c.Param("id")
+
+	log := logging.WithAttrs(
+		c.Request().Context(),
+		logging.String("op", "GetChatMessages"),
+		logging.String("chat_id", chatID),
+	)
+
+	logging.ContextWithLogger(c.Request().Context(), log)
+
+	c.SetRequest(c.Request().WithContext(c.Request().Context()))
 
 	msgs, err := a.chatService.GetMessages(c.Request().Context(), chatID)
 	if err != nil {

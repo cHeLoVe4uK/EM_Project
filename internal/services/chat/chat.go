@@ -3,13 +3,14 @@ package chat
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/meraiku/logging"
 )
 
 type Room struct {
@@ -55,7 +56,7 @@ func (s *Service) newRoom(chat models.Chat) (*Room, error) {
 
 	history, err := r.newHistory(s.ctx, r.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create history: %w", err)
 	}
 
 	r.History = history
@@ -67,9 +68,7 @@ func (s *Service) newRoom(chat models.Chat) (*Room, error) {
 
 func (r *Room) Run(ctx context.Context) {
 
-	slog.With(
-		slog.String("room_id", r.ID),
-	)
+	log := logging.WithAttrs(ctx, logging.String("room_id", r.ID))
 
 	for {
 		select {
@@ -89,10 +88,10 @@ func (r *Room) Run(ctx context.Context) {
 			r.ActiveUsers[client] = struct{}{}
 			r.mu.Unlock()
 
-			slog.Info(
+			log.Info(
 				"client joined room",
-				slog.String("client_id", client.ID),
-				slog.String("username", client.Username),
+				logging.String("client_id", client.ID),
+				logging.String("username", client.Username),
 			)
 		case client := <-r.Manager.Logout:
 
@@ -100,10 +99,10 @@ func (r *Room) Run(ctx context.Context) {
 			delete(r.ActiveUsers, client)
 			r.mu.Unlock()
 
-			slog.Info(
+			log.Info(
 				"client left room",
-				slog.String("client_id", client.ID),
-				slog.String("username", client.Username),
+				logging.String("client_id", client.ID),
+				logging.String("username", client.Username),
 			)
 
 		case client := <-r.Manager.Kick:
@@ -112,24 +111,21 @@ func (r *Room) Run(ctx context.Context) {
 			delete(r.ActiveUsers, client)
 			r.mu.Unlock()
 
-			slog.Info(
+			log.Info(
 				"client kicked from room",
-				slog.String("client_id", client.ID),
-				slog.String("username", client.Username),
+				logging.String("client_id", client.ID),
+				logging.String("username", client.Username),
 			)
 
 		case msg := <-r.Broadcast:
 
-			slog.Debug(
-				"render message",
-				slog.Any("message", msg),
-			)
+			log.Debug("render message")
 
 			data, err := msg.Render()
 			if err != nil {
-				slog.Error(
+				log.Error(
 					"failed to render message",
-					slog.Any("error", err),
+					logging.Err(err),
 				)
 
 				continue
@@ -137,24 +133,31 @@ func (r *Room) Run(ctx context.Context) {
 
 			pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
 			if err != nil {
-				slog.Error(
+				log.Error(
 					"failed to prepare message",
-					slog.Any("error", err),
+					logging.Err(err),
 				)
 
 				continue
 			}
 
+			log.Debug("add message to history")
+
 			r.History.Add(*msg)
 
 			for c := range r.ActiveUsers {
 
+				log.Debug(
+					"send message to client",
+					logging.String("client_id", c.ID),
+				)
+
 				go func() {
 
 					if err := c.Send(pm); err != nil {
-						slog.Error(
+						log.Error(
 							"failed to send message",
-							slog.Any("error", err),
+							logging.Err(err),
 						)
 					}
 
@@ -166,35 +169,46 @@ func (r *Room) Run(ctx context.Context) {
 }
 
 func (r *Room) Add(client *Client) {
+	ctx := context.TODO()
+	log := logging.WithAttrs(
+		ctx,
+		logging.String("room_id", r.ID),
+		logging.String("client_id", client.ID),
+		logging.String("username", client.Username),
+	)
+
 	r.Manager.Add <- client
+
+	log.Debug("read message history")
 
 	msgs := r.History.Read()
 	if len(msgs) == 0 {
+		log.Debug("history is empty")
 		return
 	}
 
-	slog.Debug(
-		"send history",
-		slog.Int("messages", len(msgs)),
-	)
-
 	data, err := json.Marshal(msgs)
 	if err != nil {
-		slog.Warn(
+		log.Warn(
 			"marshal history",
-			slog.Any("error", err),
+			logging.Err(err),
 		)
 		return
 	}
 
 	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
 	if err != nil {
-		slog.Warn(
+		log.Warn(
 			"prepare history",
-			slog.Any("error", err),
+			logging.Err(err),
 		)
 		return
 	}
+
+	log.Debug(
+		"send history",
+		logging.Int("messages_count", len(msgs)),
+	)
 
 	client.Send(pm)
 }
@@ -208,10 +222,11 @@ func (r *Room) Kick(client *Client) {
 }
 
 func (r *Room) Stop() {
+	ctx := context.TODO()
 
-	slog.Info(
-		"closing room",
-	)
+	log := logging.WithAttrs(ctx, logging.String("room_id", r.ID))
+
+	log.Info("recieve close signal")
 
 	systemMsg := MessageDTO{
 		ID:        uuid.NewString(),
@@ -224,27 +239,28 @@ func (r *Room) Stop() {
 
 	data, err := systemMsg.Render()
 	if err != nil {
-		slog.Warn(
+		log.Warn(
 			"render system message",
-			slog.Any("error", err),
+			logging.Err(err),
 		)
 	}
 
 	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
 	if err != nil {
-		slog.Warn(
+		log.Warn(
 			"prepare system message",
-			slog.Any("error", err),
+			logging.Err(err),
 		)
 		return
 	}
 
 	for client := range r.ActiveUsers {
-
-		slog.Debug(
-			"close connection",
-			slog.String("client_id", client.ID),
+		log := logging.WithAttrs(
+			ctx,
+			logging.String("client_id", client.ID),
 		)
+
+		log.Debug("closing connection")
 
 		r.Manager.Kick <- client
 
@@ -252,14 +268,14 @@ func (r *Room) Stop() {
 
 			defer func() {
 				if err := client.conn.Close(); err != nil {
-					slog.Error(
+					log.Error(
 						"failed to close connection",
-						slog.Any("error", err),
+						logging.Err(err),
 					)
 				}
 			}()
 
-			client.Send(pm)
+			_ = client.Send(pm)
 
 		}()
 
@@ -277,26 +293,34 @@ func (r *Room) controlHistory(saveChan chan struct{}) {
 
 	ctx := context.TODO()
 
+	log := logging.WithAttrs(ctx, logging.String("room_id", r.ID))
+
 	for {
 		select {
 		case <-tick.C:
 
+			log.Debug("stashing history by timer")
+
 			if err := r.StashHistory(ctx); err != nil {
-				slog.Error(
+				log.Error(
 					"failed to stash history by timer",
-					slog.Any("error", err),
+					logging.Err(err),
 				)
 			}
 
 		case <-saveChan:
+
+			log.Debug("stashing history by save chan")
+
 			retry := 0
+
 			for {
 
 				if err := r.StashHistory(ctx); err != nil {
-					slog.Error(
+					log.Error(
 						"failed to stash history by save chan",
-						slog.Any("error", err),
-						slog.Int("retry", retry),
+						logging.Err(err),
+						logging.Int("retry", retry),
 					)
 
 					retry++
@@ -307,23 +331,24 @@ func (r *Room) controlHistory(saveChan chan struct{}) {
 					time.Sleep(time.Second)
 					continue
 				}
-
 				break
 			}
-
 		}
-
 	}
 }
 
 func (r *Room) StashHistory(ctx context.Context) error {
+	log := logging.L(ctx)
+
 	msgs := ToMessageBatch(r.History.ReadNew())
 
 	if err := r.msgService.SaveMessages(ctx, msgs); err != nil {
-		return err
+		return fmt.Errorf("save messages: %w", err)
 	}
 
 	r.History.MarkReaded()
+
+	log.Info("history stashed successfully")
 
 	return nil
 }
