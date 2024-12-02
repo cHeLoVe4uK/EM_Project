@@ -6,6 +6,7 @@ replace github.com/cHeLoVe4uK/EM_Project/internal/domain/models => ./internal/do
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.10.0
 )
 
