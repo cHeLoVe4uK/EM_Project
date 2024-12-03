@@ -15,12 +15,9 @@ var (
 // Вход пользователя
 func (us *UserService) Login(ctx context.Context, u *models.User) (*models.Token, error) {
 	// Проверка наличия пользователя в БД
-	user, ok, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
+	user, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, ErrUserNotFound
 	}
 
 	// Если есть, сверяем пароли и выбиваем токены
