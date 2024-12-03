@@ -14,7 +14,9 @@ const (
 )
 
 var (
-	ErrInvalidUserID = errors.New("invalid user id")
+	ErrDuplicateEmail = errors.New("duplicate email")
+	ErrInvalidUserID  = errors.New("invalid user id")
+	ErrUserNotFound   = errors.New("user with this id not found")
 )
 
 type UsersRepo struct {
@@ -27,12 +29,16 @@ func NewUsersRepo(db *mongo.Database) *UsersRepo {
 	}
 }
 
-func (r *UsersRepo) CreateUser(ctx context.Context, user *models.User) error {
+func (r *UsersRepo) CreateUser(ctx context.Context, user models.User) error {
 	_, err := r.collection.InsertOne(ctx, user)
-	return err
+	if mongo.IsDuplicateKeyError(err) {
+		return ErrDuplicateEmail
+	}
+
+	return nil
 }
 
-func (r *UsersRepo) UpdateUser(ctx context.Context, user *models.User) error {
+func (r *UsersRepo) UpdateUser(ctx context.Context, user models.User) error {
 	objectID, err := primitive.ObjectIDFromHex(user.ID)
 	if err != nil {
 		return ErrInvalidUserID
@@ -63,29 +69,31 @@ func (r *UsersRepo) DeleteUser(ctx context.Context, userID string) error {
 	return err
 }
 
-func (r *UsersRepo) CheckUserByUsername(ctx context.Context, name string) (bool, error) {
-	if err := r.collection.FindOne(ctx, bson.M{"username": name}).Err(); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) (bool, error) {
+func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) error {
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		return false, ErrInvalidUserID
+		return ErrInvalidUserID
 	}
 
 	if err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
+			return ErrUserNotFound
 		}
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
+}
+
+func (r *UsersRepo) CheckUserByEmail(ctx context.Context, email string) (models.User, error) {
+	var user models.User
+
+	if err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return user, ErrUserNotFound
+		}
+		return user, err
+	}
+
+	return user, nil
 }
