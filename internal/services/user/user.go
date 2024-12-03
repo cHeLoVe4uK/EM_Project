@@ -6,10 +6,10 @@ import (
 )
 
 type UserRepo interface {
-	CreateUser(ctx context.Context, user *models.User) error
-	UpdateUser(ctx context.Context, user *models.User) error
+	CreateUser(ctx context.Context, user models.User) error
+	UpdateUser(ctx context.Context, user models.User) error
 	DeleteUser(ctx context.Context, userID string) error
-	CheckUserByEmail(ctx context.Context, email string) (*models.User, error)
+	CheckUserByEmail(ctx context.Context, email string) (models.User, error)
 	CheckUserByID(ctx context.Context, userID string) error
 }
 
