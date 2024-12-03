@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Клиент чата
 type Client struct {
 	models.User
 
@@ -22,25 +22,25 @@ type Client struct {
 	recieve chan []*websocket.PreparedMessage
 }
 
+// Создает нового клиента из юзера
 func NewClient(user models.User) *Client {
+
 	return &Client{
 		User:    user,
 		recieve: make(chan []*websocket.PreparedMessage),
 	}
 }
 
-func (c *Client) StartSession(ctx context.Context, conn *websocket.Conn, room *Room) error {
+// Запускает чат сессию клиента
+func (c *Client) StartSession(ctx context.Context) error {
 	defer func() {
 		c.conn.Close()
 		c.conn = nil
 	}()
 
-	slog.Info(
-		"starting new session",
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := slog.Default()
+
+	log.Info("start new session")
 
 	gr, ctx := errgroup.WithContext(ctx)
 
@@ -48,32 +48,27 @@ func (c *Client) StartSession(ctx context.Context, conn *websocket.Conn, room *R
 	gr.Go(c.write)
 
 	if err := gr.Wait(); err != nil {
-		slog.Info(
-			"session closed",
-			slog.String("client_id", c.ID),
-		)
+		log.Info("session closed")
+
 		return err
 	}
 
 	return nil
 }
 
+// Добавляет веб сокет соединение клиенту
 func (c *Client) addConnection(conn *websocket.Conn) {
 	c.conn = conn
 }
 
+// Отправляет сообщения клиенту из чата
 func (c *Client) read() error {
 	ticker := time.NewTicker(pingPeriod)
-
 	defer func() {
 		ticker.Stop()
 	}()
 
-	slog.With(
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := slog.Default()
 
 	for {
 		select {
@@ -88,24 +83,33 @@ func (c *Client) read() error {
 
 			for _, msg := range msgs {
 				if err := c.conn.WritePreparedMessage(msg); err != nil {
-					return fmt.Errorf("write message: %w", err)
+					log.Warn(
+						"write message",
+						slog.Any("error", err),
+					)
 				}
 			}
 
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
-			slog.Debug(
-				"ping client",
-			)
+			log.Debug("send ping")
 
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Error(
+					"send ping",
+					slog.Any("error", err),
+				)
+
 				return ErrClientNotAvailable
 			}
+
+			log.Debug("ping sent")
 		}
 	}
 }
 
+// Обрабатывает входящие сообщения от клиента
 func (c *Client) write() error {
 
 	c.conn.SetReadLimit(maxMessageSize)
@@ -115,18 +119,13 @@ func (c *Client) write() error {
 		return nil
 	})
 
-	slog.With(
-		slog.String("client_id", c.ID),
-		slog.String("username", c.Username),
-		slog.String("room_id", c.ChatRoom.ID),
-	)
+	log := slog.Default()
 
 	for {
-
 		_, text, err := c.conn.ReadMessage()
 		if err != nil {
 
-			slog.Error(
+			log.Error(
 				"read message",
 				slog.Any("error", err),
 			)
@@ -142,10 +141,11 @@ func (c *Client) write() error {
 		decoder := json.NewDecoder(reader)
 		err = decoder.Decode(msg)
 		if err != nil {
-			slog.Warn(
+			log.Warn(
 				"decoding message",
 				slog.Any("error", err),
 			)
+			continue
 		}
 
 		c.ChatRoom.Broadcast <- NewMessage(c, msg.Content)
@@ -154,6 +154,7 @@ func (c *Client) write() error {
 	return nil
 }
 
+// Отаправляет сообщение клиенту
 func (c *Client) Send(msg *websocket.PreparedMessage) error {
 	if c.conn == nil {
 		return ErrClientNotAvailable
@@ -164,6 +165,7 @@ func (c *Client) Send(msg *websocket.PreparedMessage) error {
 	return nil
 }
 
+// Отправляет несколько сообщений клиенту
 func (c *Client) SendBatch(msgs []*websocket.PreparedMessage) error {
 	if c.conn == nil {
 		return ErrClientNotAvailable
@@ -174,6 +176,7 @@ func (c *Client) SendBatch(msgs []*websocket.PreparedMessage) error {
 	return nil
 }
 
+// Закрывает веб сокет соединение у клиента
 func (c *Client) Close() {
 	if c.conn != nil {
 		c.conn.Close()
