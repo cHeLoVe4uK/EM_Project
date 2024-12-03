@@ -28,6 +28,22 @@ func NewChatsRepo(db *mongo.Database) *ChatsRepo {
 	}
 }
 
+func (r *ChatsRepo) GetAllChats(ctx context.Context) ([]models.Chat, error) {
+	var chats []models.Chat
+
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+
+	return chats, nil
+}
+
 func (r *ChatsRepo) GetChatByID(ctx context.Context, chatID string) (models.Chat, error) {
 	var chat models.Chat
 
@@ -71,14 +87,6 @@ func (r *ChatsRepo) DeleteChat(ctx context.Context, chatID string) error {
 		return ErrInvalidChatID
 	}
 
-	res, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
-	if err != nil {
-		return err
-	}
-
-	if res.DeletedCount == 0 {
-		return ErrChatNotFound
-	}
-
-	return nil
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	return err
 }
