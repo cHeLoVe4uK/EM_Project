@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	ErrUserNotFound          = errors.New("user not found")
 	ErrUserAlreadyRegistered = errors.New("user already registered")
 	ErrHashPassword          = errors.New("server error")
 )
@@ -17,12 +16,9 @@ var (
 // Регистрация пользователя
 func (us *UserService) Register(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	_, ok, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
+	_, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
 	if err != nil {
 		return err
-	}
-	if ok {
-		return ErrUserAlreadyRegistered
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль
@@ -43,12 +39,9 @@ func (us *UserService) Register(ctx context.Context, u *models.User) error {
 // Обновление пользователя
 func (us *UserService) UpdateUser(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	ok, err := us.userRepo.CheckUserByID(ctx, u.Username)
+	err := us.userRepo.CheckUserByID(ctx, u.Username)
 	if err != nil {
 		return err
-	}
-	if !ok {
-		return ErrUserNotFound
 	}
 
 	// Если найден обновляем
@@ -62,12 +55,9 @@ func (us *UserService) UpdateUser(ctx context.Context, u *models.User) error {
 // Удаление пользователя
 func (us *UserService) DeleteUser(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	ok, err := us.userRepo.CheckUserByID(ctx, u.Username)
+	err := us.userRepo.CheckUserByID(ctx, u.Username)
 	if err != nil {
 		return err
-	}
-	if !ok {
-		return ErrUserNotFound
 	}
 
 	// Если найден удаляем
