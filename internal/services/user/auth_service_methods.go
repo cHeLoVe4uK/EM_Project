@@ -1,27 +1,43 @@
 package user
 
-import "github.com/cHeLoVe4uK/EM_Project/internal/models"
+import (
+	"context"
+	"errors"
+
+	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrInvalidPassword = errors.New("invalid password")
+)
 
 // Вход пользователя
-func (us *UserService) Login(u *models.User) (string, string, error) {
+func (us *UserService) Login(ctx context.Context, u *models.User) (*models.Token, error) {
 	// Проверка наличия пользователя в БД
-	ok, err := us.userRepo.CheckUserByID(u.ID)
+	user, ok, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	if !ok {
-		return "", "", ErrUserNotFound
+		return nil, ErrUserNotFound
 	}
 
-	// Если есть выбиваем токены
-	accessToken, refreshToken, err := us.authService.GetTokens(u)
+	// Если есть, сверяем пароли и выбиваем токены
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password))
 	if err != nil {
-		return "", "", err
+		return nil, ErrInvalidPassword
 	}
 
-	return accessToken, refreshToken, nil
+	tokens, err := us.authService.GetTokens(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
 }
 
+// Пока непонятно что тут будет происходить
 func (us *UserService) Logout(u *models.User) error {
 	return nil
 }

@@ -10,13 +10,13 @@ type UserRepo interface {
 	CreateUser(context.Context, *models.User) error
 	UpdateUser(context.Context, *models.User) error
 	DeleteUser(context.Context, *models.User) error
-	CheckUserByUsername(context.Context, string) (bool, error)
+	CheckUserByEmail(context.Context, string) (*models.User, bool, error)
 	CheckUserByID(context.Context, string) (bool, error)
 }
 
 type AuthService interface {
-	GetTokens(*models.User) (string, string, error)
-	RefreshTokens(string, string) (string, string, error)
+	GetTokens(*models.User) (*models.Token, error)
+	RefreshTokens(*models.Token) (*models.Token, error)
 	Authorization(string) error
 }
 

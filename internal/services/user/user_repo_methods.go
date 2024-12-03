@@ -5,17 +5,19 @@ import (
 	"errors"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrUserNotFound          = errors.New("User not found")
-	ErrUserAlreadyRegistered = errors.New("User already registered")
+	ErrUserNotFound          = errors.New("user not found")
+	ErrUserAlreadyRegistered = errors.New("user already registered")
+	ErrHashPassword          = errors.New("server error")
 )
 
 // Регистрация пользователя
 func (us *UserService) Register(ctx context.Context, u *models.User) error {
 	// Проверка наличия пользователя в БД
-	ok, err := us.userRepo.CheckUserByUsername(ctx, u.Username)
+	_, ok, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
 	if err != nil {
 		return err
 	}
@@ -23,7 +25,14 @@ func (us *UserService) Register(ctx context.Context, u *models.User) error {
 		return ErrUserAlreadyRegistered
 	}
 
-	// Если нет создаем
+	// Если пользователя не существует создаем его в БД, хэшируя пароль
+	passHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return ErrHashPassword
+	}
+
+	u.Password = string(passHash)
+
 	err = us.userRepo.CreateUser(ctx, u)
 	if err != nil {
 		return err
