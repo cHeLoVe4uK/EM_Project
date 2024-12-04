@@ -3,18 +3,23 @@ package services
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 
-	"github.com/cHeLoVe4uK/EM_Project/internal/domain/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetTokens(t *testing.T) {
-	os.Setenv("SECRET_KEY", "test_secret_key")
-	defer os.Unsetenv("SECRET_KEY")
+	os.Setenv("TOKEN_SALT", "test_secret_key")
+	os.Setenv("ACCESS_TOKEN_EXP", "24")
+	defer os.Unsetenv("TOKEN_SALT")
+	defer os.Unsetenv("ACCESS_TOKEN_EXP")
 
-	s := NewService()
+	ate, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
+	require.NoError(t, err, "No error should occuer while converting ACCESS_TOKEN_EXP to int")
+	s := NewService(os.Getenv("TOKEN_SALT"), ate)
 	user := models.User{
 		UserID:   "123",
 		Username: "testuser",
@@ -24,7 +29,7 @@ func TestGetTokens(t *testing.T) {
 	require.NoError(t, err, "Error should not occur while generating token")
 	require.NotEmpty(t, tokens.AccessToken, "Token should not be empty")
 
-	claims := &models.Claims{}
+	claims := &Claims{}
 	_, err = jwt.ParseWithClaims(tokens.AccessToken, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte("test_secret_key"), nil
 	})
@@ -34,10 +39,14 @@ func TestGetTokens(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	os.Setenv("SECRET_KEY", "test_secret_key")
-	defer os.Unsetenv("SECRET_KEY")
+	os.Setenv("TOKEN_SALT", "test_secret_key")
+	os.Setenv("ACCESS_TOKEN_EXP", "24")
+	defer os.Unsetenv("TOKEN_SALT")
+	defer os.Unsetenv("ACCESS_TOKEN_EXP")
 
-	s := NewService()
+	ate, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
+	require.NoError(t, err, "No error should occuer while converting ACCESS_TOKEN_EXP to int")
+	s := NewService(os.Getenv("TOKEN_SALT"), ate)
 	user := models.User{
 		UserID:   "123",
 		Username: "testuser",
