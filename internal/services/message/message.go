@@ -8,21 +8,25 @@ import (
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
+// Интерфейс репозитория сообщений
 type Repository interface {
 	SaveMessages(ctx context.Context, msgs []models.Message) error
 	GetChatMessages(ctx context.Context, chatID string) ([]models.Message, error)
 }
 
+// Сервис сообщений
 type Service struct {
 	repo Repository
 }
 
+// Конструктор сервиса
 func New(repo Repository) *Service {
 	return &Service{
 		repo: repo,
 	}
 }
 
+// Сохранение массива сообщений в репозиторий
 func (s *Service) SaveMessages(ctx context.Context, msgs []models.Message) error {
 	log := slog.Default()
 
@@ -45,6 +49,7 @@ func (s *Service) SaveMessages(ctx context.Context, msgs []models.Message) error
 	return nil
 }
 
+// Получение массива сообщений из репозитория по айди чата. Возвращает слайс до 100 последних сообщений
 func (s *Service) GetChatMessages(ctx context.Context, chatID string) ([]models.Message, error) {
 	log := slog.Default()
 
