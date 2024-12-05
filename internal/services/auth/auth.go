@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func NewService(salt string, accessExp int) *Service {
 /* Функция создает пару {Accesss, Refresh} для заданного User (временно только Accesss) */
 func (s *Service) GetTokens(ctx context.Context, user models.User) (models.Tokens, error) {
 	claims := Claims{
-		UserID:   user.UserID,
+		UserID:   user.ID,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "Chat App",
