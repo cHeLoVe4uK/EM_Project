@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/services/auth"
 )
 
 type UserRepo interface {
@@ -16,7 +17,7 @@ type UserRepo interface {
 type AuthService interface {
 	GetTokens(context.Context, models.User) (models.Tokens, error)
 	Refresh(context.Context, models.User) (models.Tokens, error)
-	Authenticate(context.Context, models.Tokens) (services.Claims, error)
+	Authenticate(context.Context, models.Tokens) (auth.Claims, error)
 }
 
 // Инстанс сервиса для работы с пользователями
