@@ -15,9 +15,9 @@ type UserRepo interface {
 }
 
 type AuthService interface {
-	GetTokens(*models.User) (*models.Token, error)
-	RefreshTokens(*models.Token) (*models.Token, error)
-	Authorization(*models.Token) error
+	GetTokens(context.Context, models.User) (models.Tokens, error)
+	Refresh(context.Context, models.User) (models.Tokens, error)
+	Authenticate(context.Context, models.Tokens) (services.Claims, error)
 }
 
 // Инстанс сервиса для работы с пользователями
