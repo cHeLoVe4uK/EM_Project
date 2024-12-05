@@ -22,7 +22,7 @@ type ChatService interface {
 }
 
 type UserService interface {
-	Create(ctx context.Context, user models.User) (string, error)
+	Register(ctx context.Context, user models.User) (string, error)
 	Login(ctx context.Context, user models.User) (models.Tokens, error)
 }
 

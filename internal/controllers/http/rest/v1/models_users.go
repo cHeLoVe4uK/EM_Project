@@ -16,5 +16,6 @@ type CreateUserResponse struct {
 }
 
 type LoginUserResponse struct {
-	Token string `json:"token" example:"JWT token"`
+	AccessToken  string `json:"access_token" example:"JWT access token"`
+	RefreshToken string `json:"refresh_token" example:"JWT refresh token"`
 }

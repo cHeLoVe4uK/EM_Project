@@ -55,9 +55,9 @@ func (a *API) CreateUser(c echo.Context) error {
 
 	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	id, err := a.userService.Create(ctx, user)
+	id, err := a.userService.Register(ctx, user)
 	if err != nil {
-		if errors.Is(err, userrepo.ErrUserAlreadyExists) {
+		if errors.Is(err, userrepo.ErrDuplicateEmail) {
 			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 		}
 		return err
@@ -112,14 +112,15 @@ func (a *API) LoginUser(c echo.Context) error {
 
 	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
-	token, err := a.userService.Login(ctx, user)
+	tokens, err := a.userService.Login(ctx, user)
 	if err != nil {
 		return err
 	}
 
 	var res LoginUserResponse
 
-	res.Token = token.Token
+	res.AccessToken = tokens.AccessToken
+	res.RefreshToken = tokens.RefreshToken
 
 	return c.JSON(http.StatusOK, res)
 }
