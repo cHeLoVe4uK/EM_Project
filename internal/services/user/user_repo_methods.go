@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	ErrUserAlreadyRegistered = errors.New("user already registered")
-	ErrHashPassword          = errors.New("server error")
+	ErrHashPassword = errors.New("server error")
 )
 
 // Регистрация пользователя
