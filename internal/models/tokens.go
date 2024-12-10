@@ -1,6 +1,11 @@
 package models
 
 type Tokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string
+	RefreshToken string
+}
+
+type Claims struct {
+	UserID   string
+	Username string
 }
