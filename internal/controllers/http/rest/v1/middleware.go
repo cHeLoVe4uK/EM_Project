@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/google/uuid"
@@ -67,36 +68,48 @@ func (a *API) recoverMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (a *API) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		access, err := c.Cookie("access_token")
-		if err != nil {
-			_, err := c.Cookie("refresh_token")
-			if err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
-			}
+		log := logging.WithAttrs(
+			c.Request().Context(),
+			logging.String("op", "AuthMiddleware"),
+		)
 
-			//tokens, err := a.authService.Refresh(c.Request().Context(), refresh.Value)
-			//if err != nil {
-			//return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
-			//}
+		log.Debug("auth middleware executed")
 
-			// How parse jwt????
+		tokenHeader := c.Request().Header.Get("Authorization")
 
-			// Save in cookie
+		log.Debug("token header", logging.String("token", tokenHeader))
+
+		reqToken := strings.Split(tokenHeader, "Bearer ")
+		if len(reqToken) != 2 {
+			log.Debug("token is empty")
 
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
 
+		token := reqToken[1]
+
 		tokens := models.Tokens{
-			AccessToken: access.Value,
+			AccessToken: token,
 		}
+
+		log.Debug("got token, trying to authenticate")
 
 		claims, err := a.authService.Authenticate(c.Request().Context(), tokens)
 		if err != nil {
+
+			log.Warn("authenticate user", logging.Any("error", err))
+
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
 
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
+
+		log.Debug(
+			"user authenticated",
+			logging.String("user_id", claims.UserID),
+			logging.String("username", claims.Username),
+		)
 
 		return next(c)
 	}

@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 var (
@@ -11,8 +11,8 @@ var (
 )
 
 type Chat struct {
-	ID   string `bson:"_id,omitempty"`
-	Name string `bson:"name"`
+	ID   string
+	Name string
 }
 
 func NewChat(name string) (Chat, error) {
@@ -21,7 +21,7 @@ func NewChat(name string) (Chat, error) {
 	}
 
 	return Chat{
-		ID:   primitive.NewObjectID().String(),
+		ID:   uuid.NewString(),
 		Name: name,
 	}, nil
 }

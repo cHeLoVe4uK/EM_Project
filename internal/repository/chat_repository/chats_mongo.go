@@ -3,10 +3,11 @@ package chat_repository
 import (
 	"context"
 	"errors"
+
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -15,78 +16,96 @@ const (
 
 var (
 	ErrInvalidChatID = errors.New("invalid chat id")
-	ErrChatNotFound  = errors.New("chat with this id not found")
+	ErrChatNotFound  = errors.New("chat not found")
 )
 
-type ChatsRepo struct {
+type Repository struct {
 	collection *mongo.Collection
 }
 
-func NewChatsRepo(db *mongo.Database) *ChatsRepo {
-	return &ChatsRepo{
-		collection: db.Collection(chatsCollection),
+func NewChatsRepo(db *mongo.Database) (*Repository, error) {
+	collection := db.Collection(chatsCollection)
+
+	index := mongo.IndexModel{
+		Keys:    bson.M{"chat_id": "text"},
+		Options: options.Index().SetUnique(true),
 	}
-}
 
-func (r *ChatsRepo) GetAllChats(ctx context.Context) ([]models.Chat, error) {
-	var chats []models.Chat
-
-	cursor, err := r.collection.Find(ctx, bson.M{})
+	_, err := collection.Indexes().CreateOne(context.Background(), index)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
 
-	if err = cursor.All(ctx, &chats); err != nil {
+	return &Repository{
+		collection: collection,
+	}, nil
+}
+
+func (r *Repository) GetAllChats(ctx context.Context) ([]models.Chat, error) {
+	var chats []Chat
+
+	filter := bson.M{}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
 		return nil, err
 	}
 
-	return chats, nil
-}
-
-func (r *ChatsRepo) GetChatByID(ctx context.Context, chatID string) (models.Chat, error) {
-	var chat models.Chat
-
-	objectID, err := primitive.ObjectIDFromHex(chatID)
-	if err != nil {
-		return chat, ErrInvalidChatID
+	if err := cursor.All(ctx, &chats); err != nil {
+		return nil, err
 	}
 
-	if err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&chat); err != nil {
+	return ToChatBatch(chats), nil
+}
+
+func (r *Repository) GetChatByID(ctx context.Context, chatID string) (models.Chat, error) {
+	var chat Chat
+
+	if err := r.collection.FindOne(ctx, bson.M{"chat_id": chatID}).Decode(&chat); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return chat, ErrChatNotFound
+
+			return models.Chat{}, ErrChatNotFound
 		}
-		return chat, err
+
+		return models.Chat{}, err
 	}
 
-	return chat, nil
+	return ToChat(chat), nil
 }
 
-func (r *ChatsRepo) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
-	res, err := r.collection.InsertOne(ctx, chat)
+func (r *Repository) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
+	repoChat := FromChat(chat)
+
+	_, err := r.collection.InsertOne(ctx, repoChat)
 	if err != nil {
 		return "", err
 	}
 
-	return res.InsertedID.(primitive.ObjectID).Hex(), nil
+	return chat.ID, nil
 }
 
-func (r *ChatsRepo) UpdateChat(ctx context.Context, chat models.Chat) error {
-	objectID, err := primitive.ObjectIDFromHex(chat.ID)
+func (r *Repository) UpdateChat(ctx context.Context, chat models.Chat) error {
+
+	repoChat := FromChat(chat)
+
+	_, err := r.collection.UpdateOne(ctx, bson.M{"chat_id": repoChat.ChatID}, bson.M{"$set": bson.M{"name": repoChat.Name}})
 	if err != nil {
-		return ErrInvalidChatID
+		return err
 	}
 
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": bson.M{"name": chat.Name}})
-	return err
+	return nil
 }
 
-func (r *ChatsRepo) DeleteChat(ctx context.Context, chatID string) error {
-	objectID, err := primitive.ObjectIDFromHex(chatID)
+func (r *Repository) DeleteChat(ctx context.Context, chatID string) error {
+
+	res, err := r.collection.DeleteOne(ctx, bson.M{"chat_id": chatID})
 	if err != nil {
-		return ErrInvalidChatID
+		return err
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
-	return err
+	if res.DeletedCount == 0 {
+		return ErrChatNotFound
+	}
+
+	return nil
 }

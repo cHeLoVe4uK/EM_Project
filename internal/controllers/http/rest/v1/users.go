@@ -123,5 +123,13 @@ func (a *API) LoginUser(c echo.Context) error {
 	res.AccessToken = tokens.AccessToken
 	res.RefreshToken = tokens.RefreshToken
 
+	cookie := &http.Cookie{
+		Name:   "access_token",
+		Value:  tokens.AccessToken,
+		MaxAge: 60 * 60 * 24 * 365,
+	}
+
+	c.SetCookie(cookie)
+
 	return c.JSON(http.StatusOK, res)
 }

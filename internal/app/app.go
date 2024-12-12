@@ -83,7 +83,10 @@ func (a *App) initRepos(ctx context.Context) error {
 
 		db := a.mongo.Database("em_chat")
 
-		chatRepo := chat_repository.NewChatsRepo(db)
+		chatRepo, err := chat_repository.NewChatsRepo(db)
+		if err != nil {
+			return err
+		}
 
 		a.chatRepo = chatRepo
 

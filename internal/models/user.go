@@ -13,7 +13,7 @@ var (
 )
 
 type User struct {
-	ID       string `bson:"_id,omitempty"`
+	ID       string `bson:"id"`
 	Email    string `bson:"email"`
 	Username string `bson:"username"`
 	Password string `bson:"password"`

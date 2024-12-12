@@ -24,7 +24,7 @@ func (us *UserService) Login(ctx context.Context, u models.User) (models.Tokens,
 		return models.Tokens{}, ErrInvalidPassword
 	}
 
-	tokens, err := us.authService.GetTokens(ctx, u)
+	tokens, err := us.authService.GetTokens(ctx, user)
 	if err != nil {
 		return models.Tokens{}, err
 	}

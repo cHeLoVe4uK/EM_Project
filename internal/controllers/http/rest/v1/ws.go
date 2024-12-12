@@ -30,12 +30,14 @@ func (a *API) ConnectChat(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, "chat id is empty")
 	}
 
-	uid := c.Request().Context().Value("user_id")
+	uid := c.Get("user_id")
 	if uid == nil {
+		log.Debug("user id is empty")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, "user id is empty")
 	}
-	username := c.Request().Context().Value("username")
+	username := c.Get("username")
 	if username == nil {
+		log.Debug("username is empty")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, "username is empty")
 	}
 
