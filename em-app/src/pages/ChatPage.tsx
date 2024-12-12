@@ -28,10 +28,24 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`);
+        const token = Cookies.get("access_token");
+        if (!token) {
+          throw new Error("No access token found");
+        }
+    
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+    
         if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Unauthorized: Please login again.");
+          }
           throw new Error("Failed to fetch chats");
         }
+    
         const data = await response.json();
         setChats(data);
       } catch (err: any) {
@@ -85,49 +99,110 @@ const ChatPage: React.FC = () => {
 
   const handleSelectChat = async (chatId: string) => {
     setSelectedChat(chatId);
-
+  
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${chatId}/messages`);
+      const token = Cookies.get("access_token");
+      if (!token) {
+        throw new Error("No access token found");
+      }
+  
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${chatId}/messages`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized: Please login again.");
+        }
         throw new Error("Failed to fetch messages");
       }
+  
       const data = await response.json();
       setMessages(data);
     } catch (err: any) {
       message.error(err.message);
     }
   };
+  
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) {
       message.warning("Message cannot be empty.");
       return;
     }
   
-    if (!selectedChat || !socketRef.current) {
-      message.warning("Please select a chat or check your connection.");
+    if (!selectedChat) {
+      message.warning("Please select a chat first.");
       return;
     }
   
-    const messageData = { content: newMessage, author: "You", created_at: new Date().toISOString(), is_edited: false};
-    socketRef.current.send(JSON.stringify(messageData));
+    try {
+      const token = Cookies.get("access_token");
+      if (!token) {
+        throw new Error("No access token found");
+      }
   
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), ...messageData },
-    ]);
+      const messageData = {
+        content: newMessage,
+        created_at: new Date().toISOString(),
+      };
   
-    setNewMessage("");
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${selectedChat}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(messageData),
+      });
+  
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized: Please login again.");
+        }
+        throw new Error("Failed to send message");
+      }
+  
+      const sentMessage = await response.json();
+      setMessages((prev) => [...prev, sentMessage]);
+      setNewMessage("");
+    } catch (err: any) {
+      message.error(err.message);
+    }
   };
+  
 
   const handleCreateChat = async () => {
     if (!newChatName.trim()) {
       message.warning("Chat name cannot be empty.");
       return;
     }
-
+  
     try {
-      const newChat = await createChat({ name: newChatName });
+      const token = Cookies.get("access_token");
+      if (!token) {
+        throw new Error("No access token found");
+      }
+  
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newChatName }),
+      });
+  
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized: Please login again.");
+        }
+        throw new Error("Failed to create chat");
+      }
+  
+      const newChat = await response.json();
       setChats((prev) => [...prev, { id: newChat.id, name: newChatName }]);
       setNewChatName("");
       setIsModalVisible(false);
@@ -136,6 +211,7 @@ const ChatPage: React.FC = () => {
       message.error(err.message);
     }
   };
+  
 
   const handleLogout = () => {
     Cookies.remove("access_token");
