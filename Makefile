@@ -18,3 +18,7 @@ swagger:
 	@go install github.com/swaggo/swag/cmd/swag@latest
 	@swag fmt
 	@swag init -g cmd/app/main.go -o api/swagger
+
+unit_tests:
+	@echo "Running unit tests..."
+	@go test -v ./internal/... -cover -race
