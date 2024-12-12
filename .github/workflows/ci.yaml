@@ -1,0 +1,25 @@
+name: ci
+
+on:
+    pull_request:
+      branches: [main, development]
+
+jobs:
+
+  lint:
+    name: Linter code check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60

@@ -11,25 +11,25 @@ import (
 var ErrInvalidPassword = errors.New("invalid password")
 
 // Вход пользователя
-func (us *UserService) Login(ctx context.Context, u *models.User) (*models.Tokens, error) {
+func (us *UserService) Login(ctx context.Context, u models.User) (models.Tokens, error) {
 	// Проверка наличия пользователя в БД
 	user, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err != nil {
-		return nil, err
+		return models.Tokens{}, err
 	}
 
 	// Если есть, сверяем пароли и выбиваем токены
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password))
 	if err != nil {
-		return nil, ErrInvalidPassword
+		return models.Tokens{}, ErrInvalidPassword
 	}
 
-	tokens, err := us.authService.GetTokens(ctx, *u)
+	tokens, err := us.authService.GetTokens(ctx, u)
 	if err != nil {
-		return nil, err
+		return models.Tokens{}, err
 	}
 
-	return &tokens, nil
+	return tokens, nil
 }
 
 // Пока непонятно что тут будет происходить

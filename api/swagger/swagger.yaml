@@ -1,0 +1,288 @@
+definitions:
+  v1.Chat:
+    properties:
+      id:
+        example: UUID
+        type: string
+      name:
+        example: Best chat name!
+        type: string
+    type: object
+  v1.CreateChatRequest:
+    properties:
+      name:
+        example: Best chat name!
+        type: string
+    required:
+    - name
+    type: object
+  v1.CreateChatResponse:
+    properties:
+      id:
+        example: UUID
+        type: string
+    type: object
+  v1.CreateUserRequest:
+    properties:
+      email:
+        example: example@gmail.com
+        type: string
+      password:
+        example: secret1234!
+        type: string
+      username:
+        example: Username
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  v1.CreateUserResponse:
+    properties:
+      id:
+        example: UUID
+        type: string
+    type: object
+  v1.HTTPError:
+    properties:
+      message:
+        example: error description
+        type: string
+    type: object
+  v1.LoginUserRequest:
+    properties:
+      email:
+        example: example@gmail.com
+        type: string
+      password:
+        example: secret1234!
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  v1.LoginUserResponse:
+    properties:
+      access_token:
+        example: JWT access token
+        type: string
+      refresh_token:
+        example: JWT refresh token
+        type: string
+    type: object
+  v1.Message:
+    properties:
+      author_id:
+        example: UUID
+        type: string
+      author_name:
+        example: Username
+        type: string
+      chat_id:
+        example: UUID
+        type: string
+      content:
+        example: Hello world!
+        type: string
+      created_at:
+        example: "2022-05-01T00:00:00Z"
+        type: string
+      id:
+        example: UUID
+        type: string
+      is_edited:
+        example: false
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/chats:
+    get:
+      description: Prints all chats id and name
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/v1.Chat'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Get all chats
+      tags:
+      - Chats
+    post:
+      consumes:
+      - application/json
+      description: Creates new chat, runs it in background and returns chat ID
+      parameters:
+      - description: Chat name
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.CreateChatResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Create chat
+      tags:
+      - Chats
+  /api/v1/chats/{id}/connect:
+    get:
+      description: Upgrades http connection to websocket
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "422":
+          description: Unprocessable Entity
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Upgrade http connection
+      tags:
+      - Chats
+  /api/v1/chats/{id}/messages:
+    get:
+      description: Prints 100 messages from chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/v1.Message'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Get chat message history
+      tags:
+      - Chats
+  /api/v1/chats/active:
+    get:
+      description: Prints all active chats id and name
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/v1.Chat'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Get all active chats
+      tags:
+      - Chats
+  /api/v1/users:
+    post:
+      description: Creates nes User, return his ID
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/v1.CreateUserResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Create New User
+      tags:
+      - Users
+  /api/v1/users/login:
+    post:
+      description: Login User, returns token
+      parameters:
+      - description: User login data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/v1.LoginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.LoginUserResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/v1.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Login User
+      tags:
+      - Users
+swagger: "2.0"

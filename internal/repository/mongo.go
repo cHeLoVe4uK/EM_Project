@@ -3,18 +3,16 @@ package repository
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func createIndexes(ctx context.Context, db *mongo.Database) error {
+func CreateUserIndexes(ctx context.Context, db *mongo.Collection) error {
 	indexModel := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "email", Value: 1},
-		},
-		Options: options.Index().SetUnique(true).SetName("email_"),
+		Keys:    bson.M{"email": "text"},
+		Options: options.Index().SetUnique(true).SetName("email_idx"),
 	}
 
-	_, err := db.Collection("users").Indexes().CreateOne(ctx, indexModel)
+	_, err := db.Indexes().CreateOne(ctx, indexModel)
 	return err
 }

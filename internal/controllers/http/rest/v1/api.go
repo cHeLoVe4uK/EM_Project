@@ -28,7 +28,6 @@ type UserService interface {
 
 type AuthService interface {
 	GetTokens(ctx context.Context, user models.User) (models.Tokens, error)
-	Refresh(ctx context.Context, refreshToken string) (models.Tokens, error)
 	Authenticate(ctx context.Context, tokens models.Tokens) (models.Claims, error)
 }
 

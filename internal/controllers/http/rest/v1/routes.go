@@ -9,7 +9,7 @@ import (
 
 func (a *API) routes(e *echo.Echo) {
 
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.GET("api/swagger/*", echoSwagger.WrapHandler)
 
 	e.Use(a.loggingMiddleware)
 	e.Use(a.corsMiddleware)

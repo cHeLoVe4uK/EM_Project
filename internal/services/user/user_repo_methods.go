@@ -10,33 +10,34 @@ import (
 
 var (
 	ErrHashPassword = errors.New("server error")
+	ErrUserExists   = errors.New("user already exists")
 )
 
 // Регистрация пользователя
-func (us *UserService) Register(ctx context.Context, u *models.User) error {
+func (us *UserService) Register(ctx context.Context, u models.User) (string, error) {
 	// Проверка наличия пользователя в БД
 	_, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
-	if err != nil {
-		return err
+	if err == nil {
+		return "", ErrUserExists
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль
 	passHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return ErrHashPassword
+		return "", ErrHashPassword
 	}
 
 	u.Password = string(passHash)
 
 	err = us.userRepo.CreateUser(ctx, u)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return u.ID, nil
 }
 
 // Обновление пользователя
-func (us *UserService) UpdateUser(ctx context.Context, u *models.User) error {
+func (us *UserService) UpdateUser(ctx context.Context, u models.User) error {
 	// Проверка наличия пользователя в БД
 	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {

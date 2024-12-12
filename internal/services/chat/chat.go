@@ -214,7 +214,12 @@ func (r *Room) Add(client *Client) {
 		slog.Int("messages_count", len(msgs)),
 	)
 
-	client.Send(pm)
+	if err := client.Send(pm); err != nil {
+		log.Warn(
+			"send history to client",
+			slog.Any("error", err),
+		)
+	}
 }
 
 // Убирает клиента из чата при выходе
