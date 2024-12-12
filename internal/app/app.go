@@ -55,7 +55,7 @@ func (a *App) initDeps(ctx context.Context) error {
 
 func (a *App) initConfig(_ context.Context) error {
 
-	config.Load()
+	_ = config.Load()
 
 	return nil
 }
@@ -87,7 +87,10 @@ func (a *App) initRepos(ctx context.Context) error {
 
 		a.chatRepo = chatRepo
 
-		userRepo := user_repository.NewUsersRepo(db)
+		userRepo, err := user_repository.NewUsersRepo(ctx, db)
+		if err != nil {
+			return err
+		}
 
 		a.userRepo = userRepo
 

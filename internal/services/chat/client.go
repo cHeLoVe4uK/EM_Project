@@ -42,13 +42,14 @@ func (c *Client) StartSession(ctx context.Context) error {
 
 	log.Info("start new session")
 
-	gr, ctx := errgroup.WithContext(ctx)
+	gr, grctx := errgroup.WithContext(ctx)
 
 	gr.Go(c.read)
 	gr.Go(c.write)
 
 	if err := gr.Wait(); err != nil {
 		log.Info("session closed")
+		grctx.Done()
 
 		return err
 	}
@@ -74,10 +75,16 @@ func (c *Client) read() error {
 		select {
 		case msgs, ok := <-c.recieve:
 
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
+					log.Warn(
+						"write close message",
+						slog.Any("error", err),
+					)
+				}
+
 				return ErrRoomClosed
 			}
 
@@ -91,7 +98,7 @@ func (c *Client) read() error {
 			}
 
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 			log.Debug("send ping")
 
@@ -113,9 +120,9 @@ func (c *Client) read() error {
 func (c *Client) write() error {
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
@@ -129,9 +136,6 @@ func (c *Client) write() error {
 				"read message",
 				slog.Any("error", err),
 			)
-
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			}
 			break
 		}
 

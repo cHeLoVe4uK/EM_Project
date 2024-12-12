@@ -44,9 +44,7 @@ func (a *API) loggingMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		c.SetRequest(r)
 
-		next(c)
-
-		return nil
+		return next(c)
 	}
 }
 

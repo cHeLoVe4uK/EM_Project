@@ -42,6 +42,7 @@ func (r *Repository) GetChatMessages(ctx context.Context, chatID string) ([]mode
 
 	chat, ok := r.messages[chatID]
 	if !ok {
+		return nil, nil
 	}
 
 	msgsCount := len(chat)

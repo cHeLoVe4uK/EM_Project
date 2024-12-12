@@ -70,8 +70,8 @@ func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (model
 	}
 
 	out := models.Claims{
-		claims.UserID,
-		claims.Username,
+		UserID:   claims.UserID,
+		Username: claims.Username,
 	}
 
 	return out, nil
