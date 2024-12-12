@@ -10,14 +10,15 @@ import (
 
 var (
 	ErrHashPassword = errors.New("server error")
+	ErrUserExists   = errors.New("user already exists")
 )
 
 // Регистрация пользователя
 func (us *UserService) Register(ctx context.Context, u models.User) (string, error) {
 	// Проверка наличия пользователя в БД
 	_, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
-	if err != nil {
-		return "", err
+	if err == nil {
+		return "", ErrUserExists
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль

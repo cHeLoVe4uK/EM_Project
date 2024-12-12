@@ -57,6 +57,7 @@ func (a *API) CreateUser(c echo.Context) error {
 
 	id, err := a.userService.Register(ctx, user)
 	if err != nil {
+		log.Error("failed to register user", logging.Any("error", err))
 		if errors.Is(err, userrepo.ErrDuplicateEmail) {
 			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 		}

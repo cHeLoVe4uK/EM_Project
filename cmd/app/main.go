@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	"log"
+
+	_ "github.com/cHeLoVe4uK/EM_Project/api/swagger"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/app"
+	"log"
 )
 
 func main() {

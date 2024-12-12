@@ -9,8 +9,8 @@ import (
 
 func CreateUserIndexes(ctx context.Context, db *mongo.Collection) error {
 	indexModel := mongo.IndexModel{
-		Keys:    bson.M{"email": 1},
-		Options: options.Index().SetUnique(true).SetName("email_"),
+		Keys:    bson.M{"email": "text"},
+		Options: options.Index().SetUnique(true).SetName("email_idx"),
 	}
 
 	_, err := db.Indexes().CreateOne(ctx, indexModel)

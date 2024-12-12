@@ -15,7 +15,7 @@ stop:
 
 swagger:
 	@echo "Generating swagger doc..."
-	@go install github.com/swaggo/swag/cmd/swag@latest
+	@go install github.com/swaggo/swag/cmd/swag@v1.8.12
 	@swag fmt
 	@swag init -g cmd/app/main.go -o api/swagger
 
