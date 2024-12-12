@@ -19,6 +19,6 @@ swagger:
 	@swag fmt
 	@swag init -g cmd/app/main.go -o api/swagger
 
-unit_tests:
+unit_test:
 	@echo "Running unit tests..."
 	@go test -v ./internal/... -cover -race
