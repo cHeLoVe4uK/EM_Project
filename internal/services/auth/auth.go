@@ -55,7 +55,7 @@ func (s *Service) Refresh(ctx context.Context, user models.User) (models.Tokens,
 }
 
 /* Проверяет пару {Access, Refresh} на валидность */
-func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (Claims, error) {
+func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (models.Claims, error) {
 	claims := Claims{}
 
 	_, err := jwt.ParseWithClaims(tokens.AccessToken, &claims, func(token *jwt.Token) (interface{}, error) {
@@ -66,9 +66,15 @@ func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (Claim
 	})
 
 	if err != nil {
-		return Claims{}, err
+		return models.Claims{}, err
 	}
-	return claims, nil
+
+	out := models.Claims{
+		claims.UserID,
+		claims.Username,
+	}
+
+	return out, nil
 }
 
 /* Создает Access */
