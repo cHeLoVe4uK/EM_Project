@@ -70,7 +70,7 @@ func TestRegister(t *testing.T) {
 			v.ID = id
 			res, err := userService.Register(ctx, v.User)
 			require.Equal(t, res, v.ID, fmt.Sprintf("id: %s, v.user.ID: %s - mast be equal", res, v.ID))
-			require.NoError(t, err, "no error should occuer while register user")
+			require.NoError(t, err, "no error should occuer while existing register user")
 		})
 	}
 
@@ -132,7 +132,8 @@ func TestUpdateUser(t *testing.T) {
 	}
 	id := uuid.NewString()
 	user.ID = id
-	userService.Register(context.Background(), user)
+	_, err = userService.Register(context.Background(), user)
+	require.NoError(t, err, "no error should occuer while existing register user in update test")
 
 	// Тест с изменением существующего пользователя
 	user = models.User{
@@ -143,7 +144,7 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	err = userService.UpdateUser(context.Background(), user)
-	require.NoError(t, err, "no error should occuer while update existing user")
+	require.NoError(t, err, "no error should occuer while existing update user")
 
 	// Тест с изменением несуществующего пользователя (bad case)
 	user2 := models.User{
@@ -178,11 +179,12 @@ func TestDeleteUser(t *testing.T) {
 	}
 	id := uuid.NewString()
 	user.ID = id
-	userService.Register(context.Background(), user)
+	_, err = userService.Register(context.Background(), user)
+	require.NoError(t, err, "no error should occuer while existing register user in delete test")
 
 	// Тест с удалением существующего пользователя
-	userService.DeleteUser(context.Background(), user)
-	require.NoError(t, err, "No error should occuer while delete existing user")
+	err = userService.DeleteUser(context.Background(), user)
+	require.NoError(t, err, "No error should occuer while existing delete user")
 
 	// Тест с удалением несуществующего пользователя (bad case)
 	user2 := models.User{
@@ -217,12 +219,13 @@ func TestLogin(t *testing.T) {
 	}
 	id := uuid.NewString()
 	u.ID = id
-	userService.Register(context.Background(), u)
+	_, err = userService.Register(context.Background(), u)
+	require.NoError(t, err, "no error should occuer while existing register user in update test")
 
 	// Теперь сам тест
 	tokens, err := userService.Login(context.Background(), u)
 	require.NotEmpty(t, tokens, "tokens can't be empty")
-	require.NoError(t, err, "no error should occuer while login")
+	require.NoError(t, err, "no error should occuer while existing login")
 
 	// Тест с неправильным паролем
 	u.Password = "Izmenili_parol"
