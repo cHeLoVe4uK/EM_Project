@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/cHeLoVe4uK/EM_Project/internal/repository/user_repository"
@@ -48,15 +49,18 @@ func (us *UserService) Register(ctx context.Context, u models.User) (string, err
 	// Проверка наличия пользователя в БД
 	_, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err == nil {
+		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", ErrUserExists)
 		return "", ErrUserExists
 	}
 	if !errors.Is(err, user_repository.ErrUserNotFound) {
+		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", err)
 		return "", err
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль
 	passHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
+		slog.Error("From user service - register user. Error occured while exist bcrypt.GenerateFromPassword:", ErrHashPassword)
 		return "", ErrHashPassword
 	}
 
@@ -64,8 +68,10 @@ func (us *UserService) Register(ctx context.Context, u models.User) (string, err
 
 	err = us.userRepo.CreateUser(ctx, u)
 	if err != nil {
+		slog.Error("From user service - register user. Error occured while exist userRepo.CreateUser:", err)
 		return "", err
 	}
+
 	return u.ID, nil
 }
 
@@ -74,14 +80,17 @@ func (us *UserService) UpdateUser(ctx context.Context, u models.User) error {
 	// Проверка наличия пользователя в БД
 	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
+		slog.Error("From user service - update user. Error occured while exist userRepo.CheckUserByID:", err)
 		return err
 	}
 
 	// Если найден обновляем
 	err = us.userRepo.UpdateUser(ctx, u)
 	if err != nil {
+		slog.Error("From user service - update user. Error occured while exist userRepo.UpdateUser:", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -90,14 +99,17 @@ func (us *UserService) DeleteUser(ctx context.Context, u models.User) error {
 	// Проверка наличия пользователя в БД
 	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
+		slog.Error("From user service - delete user. Error occured while exist userRepo.CheckUserByID:", err)
 		return err
 	}
 
 	// Если найден удаляем
 	err = us.userRepo.DeleteUser(ctx, u.ID)
 	if err != nil {
+		slog.Error("From user service - delete user. Error occured while exist userRepo.DeleteUser:", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -106,17 +118,20 @@ func (us *UserService) Login(ctx context.Context, u models.User) (models.Tokens,
 	// Проверка наличия пользователя в БД
 	user, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err != nil {
+		slog.Error("From user service - login user. Error occured while exist userRepo.CheckUserByEmail:", err)
 		return models.Tokens{}, err
 	}
 
 	// Если есть, сверяем пароли и выбиваем токены
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password))
 	if err != nil {
+		slog.Error("From user service - login user. Error occured while exist bcrypt.CompareHashAndPassword:", ErrInvalidPassword)
 		return models.Tokens{}, ErrInvalidPassword
 	}
 
 	tokens, err := us.authService.GetTokens(ctx, user)
 	if err != nil {
+		slog.Error("From user service - login user. Error occured while exist authService.GetTokens:", err)
 		return models.Tokens{}, err
 	}
 
