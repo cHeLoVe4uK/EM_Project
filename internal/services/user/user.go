@@ -49,18 +49,18 @@ func (us *UserService) Register(ctx context.Context, u models.User) (string, err
 	// Проверка наличия пользователя в БД
 	_, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err == nil {
-		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", ErrUserExists)
+		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", slog.String("err", ErrUserExists.Error()))
 		return "", ErrUserExists
 	}
 	if !errors.Is(err, user_repository.ErrUserNotFound) {
-		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", err)
+		slog.Error("From user service - register user. Error occured while exist userRepo.CheckUserByEmail:", slog.String("err", err.Error()))
 		return "", err
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль
 	passHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		slog.Error("From user service - register user. Error occured while exist bcrypt.GenerateFromPassword:", ErrHashPassword)
+		slog.Error("From user service - register user. Error occured while exist bcrypt.GenerateFromPassword:", slog.String("err", ErrHashPassword.Error()))
 		return "", ErrHashPassword
 	}
 
@@ -68,7 +68,7 @@ func (us *UserService) Register(ctx context.Context, u models.User) (string, err
 
 	err = us.userRepo.CreateUser(ctx, u)
 	if err != nil {
-		slog.Error("From user service - register user. Error occured while exist userRepo.CreateUser:", err)
+		slog.Error("From user service - register user. Error occured while exist userRepo.CreateUser:", slog.String("err", err.Error()))
 		return "", err
 	}
 
@@ -80,14 +80,14 @@ func (us *UserService) UpdateUser(ctx context.Context, u models.User) error {
 	// Проверка наличия пользователя в БД
 	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
-		slog.Error("From user service - update user. Error occured while exist userRepo.CheckUserByID:", err)
+		slog.Error("From user service - update user. Error occured while exist userRepo.CheckUserByID:", slog.String("err", err.Error()))
 		return err
 	}
 
 	// Если найден обновляем
 	err = us.userRepo.UpdateUser(ctx, u)
 	if err != nil {
-		slog.Error("From user service - update user. Error occured while exist userRepo.UpdateUser:", err)
+		slog.Error("From user service - update user. Error occured while exist userRepo.UpdateUser:", slog.String("err", err.Error()))
 		return err
 	}
 
@@ -99,14 +99,14 @@ func (us *UserService) DeleteUser(ctx context.Context, u models.User) error {
 	// Проверка наличия пользователя в БД
 	err := us.userRepo.CheckUserByID(ctx, u.ID)
 	if err != nil {
-		slog.Error("From user service - delete user. Error occured while exist userRepo.CheckUserByID:", err)
+		slog.Error("From user service - delete user. Error occured while exist userRepo.CheckUserByID:", slog.String("err", err.Error()))
 		return err
 	}
 
 	// Если найден удаляем
 	err = us.userRepo.DeleteUser(ctx, u.ID)
 	if err != nil {
-		slog.Error("From user service - delete user. Error occured while exist userRepo.DeleteUser:", err)
+		slog.Error("From user service - delete user. Error occured while exist userRepo.DeleteUser:", slog.String("err", err.Error()))
 		return err
 	}
 
@@ -118,20 +118,20 @@ func (us *UserService) Login(ctx context.Context, u models.User) (models.Tokens,
 	// Проверка наличия пользователя в БД
 	user, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
 	if err != nil {
-		slog.Error("From user service - login user. Error occured while exist userRepo.CheckUserByEmail:", err)
+		slog.Error("From user service - login user. Error occured while exist userRepo.CheckUserByEmail:", slog.String("err", err.Error()))
 		return models.Tokens{}, err
 	}
 
 	// Если есть, сверяем пароли и выбиваем токены
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password))
 	if err != nil {
-		slog.Error("From user service - login user. Error occured while exist bcrypt.CompareHashAndPassword:", ErrInvalidPassword)
+		slog.Error("From user service - login user. Error occured while exist bcrypt.CompareHashAndPassword:", slog.String("err", ErrInvalidPassword.Error()))
 		return models.Tokens{}, ErrInvalidPassword
 	}
 
 	tokens, err := us.authService.GetTokens(ctx, user)
 	if err != nil {
-		slog.Error("From user service - login user. Error occured while exist authService.GetTokens:", err)
+		slog.Error("From user service - login user. Error occured while exist authService.GetTokens:", slog.String("err", err.Error()))
 		return models.Tokens{}, err
 	}
 

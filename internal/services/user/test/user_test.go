@@ -70,7 +70,7 @@ func TestRegister(t *testing.T) {
 			v.ID = id
 			res, err := userService.Register(ctx, v.User)
 			require.Equal(t, res, v.ID, fmt.Sprintf("id: %s, v.user.ID: %s - mast be equal", res, v.ID))
-			require.NoError(t, err, fmt.Sprintf("no error should occuer while register user"))
+			require.NoError(t, err, "no error should occuer while register user")
 		})
 	}
 
