@@ -19,8 +19,9 @@ export interface ResponseCreateChat {
 
 export interface Message {
   id: string;
-  author: string;
+  chat_id: string;
   content: string;
-  created_at: string; // Дата в формате ISO
+  created_at: string;
+  author: string;
   is_edited: boolean;
 }

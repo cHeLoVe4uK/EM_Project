@@ -68,17 +68,17 @@ const ChatPage: React.FC = () => {
   
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-  
-        if (data && data.content && data.created_at) {
-          const formattedDate = new Date(data.created_at).toLocaleString();
-  
-          setMessages((prev) => [
-            ...prev,
-            { ...data, created_at: formattedDate, is_edited: false },
-          ]);
+      
+        if (data && data.id) {
+          setMessages((prev) => {
+            const exists = prev.some((message) => message.id === data.id);
+            if (exists) return prev;
+            const formattedDate = new Date(data.created_at).toLocaleString();
+            return [...prev, { ...data, created_at: formattedDate, is_edited: false }];
+          });
         }
       };
-  
+      
       socket.onerror = () => {
         message.error("WebSocket connection error. Check the server.");
       };
@@ -127,7 +127,7 @@ const ChatPage: React.FC = () => {
   };
   
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!newMessage.trim()) {
       message.warning("Message cannot be empty.");
       return;
@@ -138,41 +138,30 @@ const ChatPage: React.FC = () => {
       return;
     }
   
-    try {
-      const token = Cookies.get("access_token");
-      if (!token) {
-        throw new Error("No access token found");
-      }
-  
-      const messageData = {
-        content: newMessage,
-        created_at: new Date().toISOString(),
-      };
-  
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chats/${selectedChat}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(messageData),
-      });
-  
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Unauthorized: Please login again.");
-        }
-        throw new Error("Failed to send message");
-      }
-  
-      const sentMessage = await response.json();
-      setMessages((prev) => [...prev, sentMessage]);
-      setNewMessage("");
-    } catch (err: any) {
-      message.error(err.message);
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      message.error("WebSocket is not connected. Please try again later.");
+      return;
     }
-  };
   
+    // Формируем объект сообщения с учетом типа Message
+    const messageData: MessageType = {
+      id: crypto.randomUUID(), // Генерация временного ID для клиента
+      chat_id: selectedChat,
+      content: newMessage,
+      created_at: new Date().toISOString(),
+      author: "You", // Пример заполнения поля author
+      is_edited: false,
+    };
+  
+    // Отправка через WebSocket
+    try {
+      socketRef.current.send(JSON.stringify(messageData));
+      setNewMessage(""); // Очистка поля ввода
+    } catch (error) {
+      message.error("Failed to send message. Please try again.");
+      console.error("WebSocket send error:", error);
+    }    
+  };  
 
   const handleCreateChat = async () => {
     if (!newChatName.trim()) {
@@ -330,7 +319,16 @@ const ChatPage: React.FC = () => {
                         display: "block",
                       }}
                     >
-                      {formatDate(message.created_at)}
+                      {formatDate(message.created_at) === "Invalid Date"
+      ? new Date().toLocaleString('ru-RU', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        })
+      : formatDate(message.created_at)}
                     </Typography.Text>
                   </div>
                 </List.Item>
