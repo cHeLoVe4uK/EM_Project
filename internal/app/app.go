@@ -61,11 +61,39 @@ func (a *App) initConfig(_ context.Context) error {
 }
 
 func (a *App) initLogger(_ context.Context) error {
-	logging.NewLogger(
-		logging.WithJSON(false),
-		logging.WithLevel(logging.LevelDebug),
-		logging.WithSource(false),
-	)
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		env = "dev"
+	}
+
+	var log *logging.Logger
+
+	switch env {
+	case "dev":
+
+		log = logging.NewLogger(
+			logging.WithJSON(false),
+			logging.WithLevel(logging.LevelDebug),
+			logging.WithSource(false),
+		)
+
+	case "prod":
+
+		var withLogstash bool
+		logstash := os.Getenv("LOGSTASH_URL")
+		if logstash != "" {
+			withLogstash = true
+		}
+
+		log = logging.NewLogger(
+			logging.WithJSON(true),
+			logging.WithLevel(logging.LevelInfo),
+			logging.WithSource(true),
+			logging.WithLogstash(withLogstash, logstash),
+		)
+	}
+
+	log.Info("logger initialized", "env", env)
 
 	return nil
 }
