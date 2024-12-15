@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/repository/chat_repository"
+	"github.com/meraiku/logging"
 
 	"github.com/gorilla/websocket"
 )
@@ -91,15 +92,20 @@ func NewService(
 // Создание нового чата и запуск его работы
 func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, error) {
 
-	log := slog.With(
-		slog.String("chat_id", chat.ID),
-		slog.String("chat_name", chat.Name),
+	log := logging.WithAttrs(
+		ctx,
+		logging.String("chat_id", chat.ID),
+		logging.String("chat_name", chat.Name),
 	)
+
+	ctx = logging.ContextWithLogger(ctx, log)
 
 	log.Debug("creating chat")
 
 	chatID, err := s.chatRepo.CreateChat(ctx, chat)
 	if err != nil {
+		log.Warn("create chat", logging.Err(err))
+
 		return "", fmt.Errorf("create chat: %w", err)
 	}
 
@@ -107,6 +113,8 @@ func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, err
 
 	room, err := s.newRoom(chat)
 	if err != nil {
+		log.Warn("create room", logging.Err(err))
+
 		return "", fmt.Errorf("create room: %w", err)
 	}
 
@@ -121,7 +129,7 @@ func (s *Service) CreateChat(ctx context.Context, chat models.Chat) (string, err
 
 // Получение активных чатов из сервиса
 func (s *Service) GetActiveChats(ctx context.Context) ([]models.Chat, error) {
-	log := slog.Default()
+	log := logging.L(ctx)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -141,8 +149,8 @@ func (s *Service) GetActiveChats(ctx context.Context) ([]models.Chat, error) {
 
 	log.Debug(
 		"active chats got",
-		slog.Duration("duration", time.Since(start)),
-		slog.Int("chats_count", len(chats)),
+		logging.Duration("duration", time.Since(start)),
+		logging.Int("chats_count", len(chats)),
 	)
 
 	return chats, nil
@@ -150,18 +158,20 @@ func (s *Service) GetActiveChats(ctx context.Context) ([]models.Chat, error) {
 
 // Получение всех чатов из репозитория
 func (s *Service) GetAllChats(ctx context.Context) ([]models.Chat, error) {
-	log := slog.Default()
+	log := logging.L(ctx)
 
 	log.Debug("getting all chats")
 
 	chats, err := s.chatRepo.GetAllChats(ctx)
 	if err != nil {
+		log.Error("get all chats", logging.Err(err))
+
 		return nil, fmt.Errorf("get all chats: %w", err)
 	}
 
 	log.Debug(
 		"all chats got",
-		slog.Int("chats_count", len(chats)),
+		logging.Int("chats_count", len(chats)),
 	)
 
 	return chats, nil
@@ -169,12 +179,25 @@ func (s *Service) GetAllChats(ctx context.Context) ([]models.Chat, error) {
 
 // Получение истории сообщений чата
 func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Message, error) {
-	log := slog.With(slog.String("chat_id", chatID))
+	log := logging.WithAttrs(
+		ctx,
+		logging.String("chat_id", chatID),
+	)
+
+	ctx = logging.ContextWithLogger(ctx, log)
 
 	log.Debug("get chat from repository")
 
 	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
 	if err != nil {
+		if errors.Is(err, chat_repository.ErrChatNotFound) {
+			log.Warn("get chat by id", logging.Err(err))
+
+			return nil, ErrChatNotFound
+		}
+
+		log.Error("get chat by id", logging.Err(err))
+
 		return nil, fmt.Errorf("get chat by id: %w", err)
 	}
 
@@ -186,6 +209,8 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 
 		msgs, err := s.msgService.GetChatMessages(ctx, chat.ID)
 		if err != nil {
+			log.Error("get chat messages", logging.Err(err))
+
 			return nil, err
 		}
 
@@ -207,7 +232,7 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 
 	log.Debug(
 		"messages got",
-		slog.Int("messages_count", len(msgs)),
+		logging.Int("messages_count", len(msgs)),
 	)
 
 	return msgs, nil
@@ -221,16 +246,27 @@ func (s *Service) ConnectByID(
 	user *models.User,
 ) error {
 
-	log := slog.With(
-		slog.String("chat_id", chatID),
-		slog.String("user_id", user.ID),
-		slog.String("username", user.Username),
+	log := logging.WithAttrs(
+		r.Context(),
+		logging.String("chat_id", chatID),
+		logging.String("user_id", user.ID),
+		logging.String("username", user.Username),
 	)
+
+	ctx := logging.ContextWithLogger(r.Context(), log)
 
 	log.Debug("getting chat from repository")
 
-	chat, err := s.chatRepo.GetChatByID(r.Context(), chatID)
+	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
 	if err != nil {
+		if errors.Is(err, chat_repository.ErrChatNotFound) {
+			log.Warn("get chat by id", logging.Err(err))
+
+			return ErrChatNotFound
+		}
+
+		log.Error("get chat by id", logging.Err(err))
+
 		return fmt.Errorf("get chat by id: %w", err)
 	}
 
@@ -239,6 +275,8 @@ func (s *Service) ConnectByID(
 	client := NewClient(*user)
 
 	if err := s.connect(client, w, r); err != nil {
+		log.Error("upgrade connection", logging.Err(err))
+
 		return fmt.Errorf("connect: %w", err)
 	}
 
@@ -256,6 +294,8 @@ func (s *Service) ConnectByID(
 
 		room, err = s.newRoom(chat)
 		if err != nil {
+			log.Error("create new room", logging.Err(err))
+
 			return fmt.Errorf("new room: %w", err)
 		}
 		s.ActiveChats[chatID] = room
@@ -274,6 +314,8 @@ func (s *Service) ConnectByID(
 	if err := client.StartSession(r.Context()); err != nil {
 
 		room.Kick(client)
+
+		log.Error("start session", logging.Err(err))
 
 		return fmt.Errorf("start session: %w", err)
 	}
@@ -300,7 +342,7 @@ func (s *Service) connect(
 
 // Останавливает работу сервиса
 func (s *Service) stop(cancel context.CancelFunc) {
-	log := slog.Default()
+	log := logging.L(s.ctx)
 
 	t := time.NewTicker(closeCheck)
 	defer t.Stop()
@@ -322,7 +364,7 @@ func (s *Service) stop(cancel context.CancelFunc) {
 
 					log.Debug(
 						"found inactive room, closing",
-						slog.String("room_id", r.ID),
+						logging.String("room_id", r.ID),
 					)
 
 					r.Manager.Close <- struct{}{}

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log/slog"
 	"time"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/gorilla/websocket"
+	"github.com/meraiku/logging"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -17,6 +17,8 @@ type Client struct {
 	models.User
 
 	ChatRoom *Room
+
+	clientCtx context.Context
 
 	conn    *websocket.Conn
 	recieve chan []*websocket.PreparedMessage
@@ -38,7 +40,9 @@ func (c *Client) StartSession(ctx context.Context) error {
 		c.conn = nil
 	}()
 
-	log := slog.Default()
+	log := logging.L(ctx)
+
+	c.clientCtx = ctx
 
 	log.Info("start new session")
 
@@ -69,7 +73,7 @@ func (c *Client) read() error {
 		ticker.Stop()
 	}()
 
-	log := slog.Default()
+	log := logging.L(c.clientCtx)
 
 	for {
 		select {
@@ -81,7 +85,7 @@ func (c *Client) read() error {
 				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
 					log.Warn(
 						"write close message",
-						slog.Any("error", err),
+						logging.Err(err),
 					)
 				}
 
@@ -92,7 +96,7 @@ func (c *Client) read() error {
 				if err := c.conn.WritePreparedMessage(msg); err != nil {
 					log.Warn(
 						"write message",
-						slog.Any("error", err),
+						logging.Err(err),
 					)
 				}
 			}
@@ -103,15 +107,15 @@ func (c *Client) read() error {
 			log.Debug("send ping")
 
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Error(
+				log.Warn(
 					"send ping",
-					slog.Any("error", err),
+					logging.Err(err),
 				)
 
 				return ErrClientNotAvailable
 			}
 
-			log.Debug("ping sent")
+			log.Debug("got pong")
 		}
 	}
 }
@@ -126,7 +130,7 @@ func (c *Client) write() error {
 		return nil
 	})
 
-	log := slog.Default()
+	log := logging.L(c.clientCtx)
 
 	for {
 		_, text, err := c.conn.ReadMessage()
@@ -134,7 +138,7 @@ func (c *Client) write() error {
 
 			log.Error(
 				"read message",
-				slog.Any("error", err),
+				logging.Any("error", err),
 			)
 			break
 		}
@@ -147,7 +151,7 @@ func (c *Client) write() error {
 		if err != nil {
 			log.Warn(
 				"decoding message",
-				slog.Any("error", err),
+				logging.Any("error", err),
 			)
 			continue
 		}
