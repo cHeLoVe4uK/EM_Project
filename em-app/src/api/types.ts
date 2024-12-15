@@ -22,6 +22,11 @@ export interface Message {
   chat_id: string;
   content: string;
   created_at: string;
-  author: string;
+  author_id: string;
+  author_name: string;
   is_edited: boolean;
+}
+
+export interface Send {
+  content: string;
 }

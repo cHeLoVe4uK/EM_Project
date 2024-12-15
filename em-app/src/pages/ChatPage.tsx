@@ -4,7 +4,7 @@ import { PlusOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { createChat, connectToChat } from "../api/api";
-import { Message as MessageType } from "../api/types";
+import { Message as MessageType, Send} from "../api/types";
 
 const { Sider, Content } = Layout;
 const { Title } = Typography;
@@ -143,20 +143,13 @@ const ChatPage: React.FC = () => {
       return;
     }
   
-    // Формируем объект сообщения с учетом типа Message
-    const messageData: MessageType = {
-      id: crypto.randomUUID(), // Генерация временного ID для клиента
-      chat_id: selectedChat,
+    const messageData: Send = {
       content: newMessage,
-      created_at: new Date().toISOString(),
-      author: "You", // Пример заполнения поля author
-      is_edited: false,
     };
   
-    // Отправка через WebSocket
     try {
       socketRef.current.send(JSON.stringify(messageData));
-      setNewMessage(""); // Очистка поля ввода
+      setNewMessage("");
     } catch (error) {
       message.error("Failed to send message. Please try again.");
       console.error("WebSocket send error:", error);
@@ -294,8 +287,8 @@ const ChatPage: React.FC = () => {
                     padding: "10px 15px",
                     marginBottom: "10px",
                     borderRadius: "12px",
-                    background: message.author === "You" ? "#d9f7be" : "#f0f0f0",
-                    alignSelf: message.author === "You" ? "flex-end" : "flex-start",
+                    background: message.author_name === "You" ? "#d9f7be" : "#f0f0f0",
+                    alignSelf: message.author_name === "You" ? "flex-end" : "flex-start",
                     maxWidth: "70%",
                     boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
                   }}
@@ -303,12 +296,12 @@ const ChatPage: React.FC = () => {
                   <div>
                     <Typography.Text
                       style={{
-                        fontWeight: message.author === "You" ? "bold" : "normal",
+                        fontWeight: message.author_name === "You" ? "bold" : "normal",
                         marginBottom: "5px",
                         display: "block",
                       }}
                     >
-                      {message.author}
+                      {message.author_name}
                     </Typography.Text>
                     <Typography.Text>{message.content}</Typography.Text>
                     <Typography.Text
