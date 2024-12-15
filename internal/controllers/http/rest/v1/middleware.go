@@ -114,3 +114,47 @@ func (a *API) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		return next(c)
 	}
 }
+
+func (a *API) wsAuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		log := logging.WithAttrs(
+			c.Request().Context(),
+			logging.String("op", "WSAuthMiddleware"),
+		)
+
+		log.Debug("ws auth middleware executed")
+
+		token := c.QueryParam("token")
+		if token == "" {
+			log.Debug("token is empty")
+			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: token empty")
+		}
+
+		tokens := models.Tokens{
+			AccessToken: token,
+		}
+
+		log.Debug("got token, trying to authenticate")
+
+		ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
+		claims, err := a.authService.Authenticate(ctx, tokens)
+		if err != nil {
+
+			log.Warn("authenticate user", logging.Any("error", err))
+
+			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: token invalid")
+		}
+
+		c.Set("user_id", claims.UserID)
+		c.Set("username", claims.Username)
+
+		log.Debug(
+			"user authenticated",
+			logging.String("user_id", claims.UserID),
+			logging.String("username", claims.Username),
+		)
+
+		return next(c)
+	}
+}
