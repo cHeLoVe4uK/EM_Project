@@ -21,6 +21,12 @@ func (a *API) routes(e *echo.Echo) {
 		return c.JSON(http.StatusOK, "ok")
 	})
 
+	ws := api.Group("/chats")
+
+	ws.Use(a.wsAuthMiddleware)
+
+	ws.GET("/:id/connect", a.ConnectChat)
+
 	chats := api.Group("/chats")
 
 	chats.Use(a.authMiddleware)
@@ -28,8 +34,6 @@ func (a *API) routes(e *echo.Echo) {
 	chats.GET("", a.GetAllChats)
 	chats.GET("/active", a.GetAllActiveChats)
 	chats.POST("", a.CreateChat)
-
-	chats.GET("/:id/connect", a.ConnectChat)
 
 	chats.GET("/:id/messages", a.GetChatMessages)
 
