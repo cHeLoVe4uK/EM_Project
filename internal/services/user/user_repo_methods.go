@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/repository/user_repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,9 +17,14 @@ var (
 // Регистрация пользователя
 func (us *UserService) Register(ctx context.Context, u models.User) (string, error) {
 	// Проверка наличия пользователя в БД
-	_, err := us.userRepo.CheckUserByEmail(ctx, u.Username)
-	if err == nil {
+	_, err := us.userRepo.CheckUserByEmail(ctx, u.Email)
+	switch err {
+	case nil:
 		return "", ErrUserExists
+	case user_repository.ErrUserNotFound:
+		break
+	default:
+		return "", err
 	}
 
 	// Если пользователя не существует создаем его в БД, хэшируя пароль
