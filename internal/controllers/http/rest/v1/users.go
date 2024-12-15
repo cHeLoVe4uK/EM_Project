@@ -7,7 +7,7 @@ import (
 	"net/mail"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
-	userrepo "github.com/cHeLoVe4uK/EM_Project/internal/repository/user_repository"
+	userService "github.com/cHeLoVe4uK/EM_Project/internal/services/user"
 	"github.com/labstack/echo/v4"
 	"github.com/meraiku/logging"
 )
@@ -58,7 +58,7 @@ func (a *API) CreateUser(c echo.Context) error {
 	id, err := a.userService.Register(ctx, user)
 	if err != nil {
 		log.Error("failed to register user", logging.Any("error", err))
-		if errors.Is(err, userrepo.ErrDuplicateEmail) {
+		if errors.Is(err, userService.ErrUserExists) {
 			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 		}
 		return err

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
-	"github.com/cHeLoVe4uK/EM_Project/internal/repository"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,9 +27,7 @@ type UsersRepo struct {
 func NewUsersRepo(ctx context.Context, db *mongo.Database) (*UsersRepo, error) {
 	uc := db.Collection(usersCollection)
 
-	if err := repository.CreateUserIndexes(ctx, uc); err != nil {
-		return nil, err
-	}
+	_ = uc.Indexes().DropAll(ctx)
 
 	return &UsersRepo{
 		collection: uc,
