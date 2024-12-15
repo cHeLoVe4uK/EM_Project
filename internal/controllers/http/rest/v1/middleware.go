@@ -71,6 +71,8 @@ func (a *API) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		log := logging.WithAttrs(
 			c.Request().Context(),
 			logging.String("op", "AuthMiddleware"),
+			// Это норм или по безопасности вообще всё грустно?
+			logging.String("issuer", c.RealIP()),
 		)
 
 		log.Debug("auth middleware executed")
@@ -81,7 +83,7 @@ func (a *API) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		reqToken := strings.Split(tokenHeader, "Bearer ")
 		if len(reqToken) != 2 {
-			log.Debug("token is empty")
+			log.Warn("token is empty")
 
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
@@ -97,7 +99,7 @@ func (a *API) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		claims, err := a.authService.Authenticate(c.Request().Context(), tokens)
 		if err != nil {
 
-			log.Warn("authenticate user", logging.Any("error", err))
+			log.Warn("authenticate user", logging.Err(err))
 
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
@@ -141,7 +143,7 @@ func (a *API) wsAuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		claims, err := a.authService.Authenticate(ctx, tokens)
 		if err != nil {
 
-			log.Warn("authenticate user", logging.Any("error", err))
+			log.Warn("authenticate user", logging.Err(err))
 
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: token invalid")
 		}
