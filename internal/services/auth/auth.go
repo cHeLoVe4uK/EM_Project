@@ -7,6 +7,7 @@ import (
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/meraiku/logging"
 )
 
 /* Структура для хранения payload токенов */
@@ -27,6 +28,8 @@ func NewService(salt string, accessExp int) *Service {
 
 /* Функция создает пару {Accesss, Refresh} для заданного User (временно только Accesss) */
 func (s *Service) GetTokens(ctx context.Context, user models.User) (models.Tokens, error) {
+	log := logging.L(ctx)
+
 	claims := Claims{
 		UserID:   user.ID,
 		Username: user.Username,
@@ -37,10 +40,16 @@ func (s *Service) GetTokens(ctx context.Context, user models.User) (models.Token
 		},
 	}
 
+	log.Debug("create access token")
+
 	accessTokenString, err := s.makeAccessToken(claims)
 	if err != nil {
-		return models.Tokens{}, err
+		log.Error("create access token", logging.Err(err))
+
+		return models.Tokens{}, fmt.Errorf("create access token: %w", err)
 	}
+
+	log.Debug("access token created", logging.String("token", accessTokenString))
 
 	tokens := models.Tokens{
 		AccessToken: accessTokenString,
@@ -56,7 +65,11 @@ func (s *Service) Refresh(ctx context.Context, user models.User) (models.Tokens,
 
 /* Проверяет пару {Access, Refresh} на валидность */
 func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (models.Claims, error) {
+	log := logging.WithAttrs(ctx, logging.String("token", tokens.AccessToken))
+
 	claims := Claims{}
+
+	log.Debug("parse access token")
 
 	_, err := jwt.ParseWithClaims(tokens.AccessToken, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -66,8 +79,18 @@ func (s *Service) Authenticate(ctx context.Context, tokens models.Tokens) (model
 	})
 
 	if err != nil {
-		return models.Claims{}, err
+		log.Warn("parse access token", logging.Err(err))
+
+		return models.Claims{}, fmt.Errorf("parse access token: %w", err)
 	}
+
+	log.Debug(
+		"access token parsed",
+		logging.String("user_id", claims.UserID),
+		logging.String("username", claims.Username),
+		logging.String("expires_at", claims.ExpiresAt.String()),
+		logging.String("issued_at", claims.IssuedAt.String()),
+	)
 
 	out := models.Claims{
 		UserID:   claims.UserID,

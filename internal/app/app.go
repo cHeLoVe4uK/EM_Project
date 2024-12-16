@@ -61,16 +61,51 @@ func (a *App) initConfig(_ context.Context) error {
 }
 
 func (a *App) initLogger(_ context.Context) error {
-	logging.NewLogger(
-		logging.WithJSON(false),
-		logging.WithLevel(logging.LevelDebug),
-		logging.WithSource(false),
-	)
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		env = "dev"
+	}
+
+	var log *logging.Logger
+
+	switch env {
+	case "dev":
+
+		log = logging.NewLogger(
+			logging.WithJSON(false),
+			logging.WithLevel(logging.LevelDebug),
+			logging.WithSource(false),
+		)
+
+	case "prod":
+
+		var withLogstash bool
+		logstash := os.Getenv("LOGSTASH_URL")
+		if logstash != "" {
+			withLogstash = true
+		}
+
+		log = logging.NewLogger(
+			logging.WithJSON(true),
+			logging.WithLevel(logging.LevelInfo),
+			logging.WithSource(true),
+			logging.WithLogstash(withLogstash, logstash),
+		)
+		if withLogstash {
+			log = logging.WithAttrs(
+				context.Background(),
+				logging.String("logstash_url", logstash),
+			)
+		}
+	}
+
+	log.Info("logger initialized", logging.String("env", env))
 
 	return nil
 }
 
 func (a *App) initRepos(ctx context.Context) error {
+	log := logging.L(ctx)
 
 	repoType := os.Getenv("REPO_TYPE")
 
@@ -107,10 +142,13 @@ func (a *App) initRepos(ctx context.Context) error {
 		a.msgRepo = msgRepoMemory.New()
 	}
 
+	log.Info("repositories initialized", logging.String("repo_type", repoType))
+
 	return nil
 }
 
 func (a *App) initMongo(ctx context.Context) error {
+	log := logging.L(ctx)
 
 	mongoDSN := os.Getenv("MONGO_DSN")
 
@@ -120,6 +158,8 @@ func (a *App) initMongo(ctx context.Context) error {
 	}
 
 	a.mongo = client
+
+	log.Info("connected to MongoDB")
 
 	return nil
 }

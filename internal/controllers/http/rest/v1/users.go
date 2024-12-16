@@ -33,6 +33,8 @@ func (a *API) CreateUser(c echo.Context) error {
 	log.Debug("binding request")
 
 	if err := c.Bind(&req); err != nil {
+		log.Warn("binding request", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
@@ -42,6 +44,8 @@ func (a *API) CreateUser(c echo.Context) error {
 		logging.String("username", req.Username),
 	)
 
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
 	log.Debug("creating user model")
 
 	user, err := models.NewUser(
@@ -50,16 +54,15 @@ func (a *API) CreateUser(c echo.Context) error {
 		req.Password,
 	)
 	if err != nil {
+		log.Warn("creating user model", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
-	ctx := logging.ContextWithLogger(c.Request().Context(), log)
-
 	id, err := a.userService.Register(ctx, user)
 	if err != nil {
-		log.Error("failed to register user", logging.Any("error", err))
 		if errors.Is(err, userService.ErrUserExists) {
-			return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
+			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 		return err
 	}
@@ -91,6 +94,8 @@ func (a *API) LoginUser(c echo.Context) error {
 	log.Debug("binding request")
 
 	if err := c.Bind(&req); err != nil {
+		log.Warn("binding request", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
@@ -103,6 +108,8 @@ func (a *API) LoginUser(c echo.Context) error {
 
 	email, err := mail.ParseAddress(req.Email)
 	if err != nil {
+		log.Warn("parse email", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("invalid email: %w", err))
 	}
 
@@ -114,7 +121,14 @@ func (a *API) LoginUser(c echo.Context) error {
 	ctx := logging.ContextWithLogger(c.Request().Context(), log)
 
 	tokens, err := a.userService.Login(ctx, user)
-	if err != nil {
+	switch err {
+	case nil:
+		break
+	case userService.ErrUserNotFound:
+		return echo.NewHTTPError(http.StatusNotFound, err)
+	case userService.ErrInvalidPassword:
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	default:
 		return err
 	}
 
@@ -122,14 +136,6 @@ func (a *API) LoginUser(c echo.Context) error {
 
 	res.AccessToken = tokens.AccessToken
 	res.RefreshToken = tokens.RefreshToken
-
-	cookie := &http.Cookie{
-		Name:   "access_token",
-		Value:  tokens.AccessToken,
-		MaxAge: 60 * 60 * 24 * 365,
-	}
-
-	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, res)
 }

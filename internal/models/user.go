@@ -13,10 +13,10 @@ var (
 )
 
 type User struct {
-	ID       string `bson:"id"`
-	Email    string `bson:"email"`
-	Username string `bson:"username"`
-	Password string `bson:"password"`
+	ID       string
+	Email    string
+	Username string
+	Password string
 }
 
 func NewUser(

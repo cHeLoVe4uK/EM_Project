@@ -2,7 +2,7 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /usr/src/app
 
-RUN apk add --no-cache make
+RUN apk add --no-cache make && go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify

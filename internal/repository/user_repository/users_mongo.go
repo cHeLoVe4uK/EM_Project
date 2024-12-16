@@ -6,7 +6,6 @@ import (
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -44,43 +43,38 @@ func (r *UsersRepo) CreateUser(ctx context.Context, user models.User) error {
 }
 
 func (r *UsersRepo) UpdateUser(ctx context.Context, user models.User) error {
-	objectID, err := primitive.ObjectIDFromHex(user.ID)
-	if err != nil {
-		return ErrInvalidUserID
-	}
+	u := FromUser(user)
 
 	updateFields := bson.M{}
 	if user.Email != "" {
-		updateFields["email"] = user.Email
+		updateFields["email"] = u.Email
 	}
 	if user.Username != "" {
-		updateFields["username"] = user.Username
+		updateFields["username"] = u.Username
 	}
 	if user.Password != "" {
-		updateFields["password"] = user.Password
+		updateFields["password"] = u.Password
 	}
 
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateFields})
+	_, err := r.collection.UpdateOne(ctx, bson.M{"id": u.UserID}, bson.M{"$set": updateFields})
 	return err
 }
 
 func (r *UsersRepo) DeleteUser(ctx context.Context, userID string) error {
-	objectID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
+	if userID == "" {
 		return ErrInvalidUserID
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err := r.collection.DeleteOne(ctx, bson.M{"id": userID})
 	return err
 }
 
 func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) error {
-	objectID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
+	if userID == "" {
 		return ErrInvalidUserID
 	}
 
-	if err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Err(); err != nil {
+	if err := r.collection.FindOne(ctx, bson.M{"id": userID}).Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrUserNotFound
 		}
@@ -91,14 +85,16 @@ func (r *UsersRepo) CheckUserByID(ctx context.Context, userID string) error {
 }
 
 func (r *UsersRepo) CheckUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
+	var user User
 
 	if err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return user, ErrUserNotFound
+			return models.User{}, ErrUserNotFound
 		}
-		return user, err
+		return models.User{}, err
 	}
 
-	return user, nil
+	out := ToUser(user)
+
+	return out, nil
 }
