@@ -291,7 +291,7 @@ func (r *Room) Stop() {
 			logging.String("client_id", client.ID),
 		)
 
-		log.Debug("closing connection")
+		log.Debug("close connection")
 
 		r.Manager.Kick <- client
 
@@ -300,7 +300,7 @@ func (r *Room) Stop() {
 			defer func() {
 				if err := client.conn.Close(); err != nil {
 					log.Warn(
-						"failed to close connection",
+						"close connection",
 						logging.Err(err),
 					)
 				}
@@ -329,29 +329,19 @@ func (r *Room) controlHistory(saveChan chan struct{}) {
 		select {
 		case <-tick.C:
 
-			log.Debug("stashing history by timer")
+			log.Debug("stash history by timer")
 
-			if err := r.StashHistory(r.roomCtx); err != nil {
-				log.Error(
-					"failed to stash history by timer",
-					logging.Err(err),
-				)
-			}
+			_ = r.StashHistory(r.roomCtx)
 
 		case <-saveChan:
-
-			log.Debug("stashing history by save chan")
 
 			retry := 0
 
 			for {
 
+				log.Debug("stash history by save chan", logging.Int("retry", retry))
+
 				if err := r.StashHistory(r.roomCtx); err != nil {
-					log.Error(
-						"failed to stash history by save chan",
-						logging.Err(err),
-						logging.Int("retry", retry),
-					)
 
 					retry++
 					if retry > 3 {
@@ -361,6 +351,7 @@ func (r *Room) controlHistory(saveChan chan struct{}) {
 					time.Sleep(time.Second)
 					continue
 				}
+
 				break
 			}
 		}
@@ -374,7 +365,7 @@ func (r *Room) StashHistory(ctx context.Context) error {
 	msgs := ToMessageBatch(r.History.ReadNew())
 
 	if err := r.msgService.SaveMessages(ctx, msgs); err != nil {
-		return fmt.Errorf("save messages: %w", err)
+		return err
 	}
 
 	r.History.MarkReaded()
