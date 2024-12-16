@@ -36,6 +36,8 @@ func (a *API) routes(e *echo.Echo) {
 	chats.POST("", a.CreateChat)
 
 	chats.GET("/:id/messages", a.GetChatMessages)
+	chats.PATCH("/:chat_id/messages/:msg_id", a.UpdateMessage)
+	chats.DELETE("/:chat_id/messages/:msg_id", a.DeleteMessage)
 
 	users := api.Group("/users")
 

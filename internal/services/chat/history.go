@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+
+	"github.com/cHeLoVe4uK/EM_Project/internal/models"
 )
 
 // История чата
@@ -124,8 +126,8 @@ func (h *History) ReadNew() []MessageDTO {
 	msgsToRead := h.newMsgs.Load()
 
 	for i := h.current; msgsToRead > 0; i-- {
-		if i == 0 {
-			i = 100
+		if i == 255 {
+			i = 99
 		}
 
 		out[msgsToRead-1] = h.msgs[i]
@@ -138,4 +140,70 @@ func (h *History) ReadNew() []MessageDTO {
 // Помечает новые сообщения, как прочитанные
 func (h *History) MarkReaded() {
 	h.newMsgs.Swap(0)
+}
+
+// Обновляет содержимое сообщения, если оно там находится
+func (h *History) UpdateMessage(ctx context.Context, msg models.Message) error {
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for i := range h.msgs {
+		if h.msgs[i].ID == msg.ID {
+			if h.msgs[i].AuthorID != msg.AuthorID {
+				return ErrNotAllowed
+			}
+
+			h.msgs[i].Content = msg.Content
+			h.msgs[i].IsEdited = true
+
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// Удаляет сообщение, если оно там находится
+func (h *History) DeleteMessage(ctx context.Context, msg models.Message) error {
+
+	history := h.Read()
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for _, m := range history {
+		if m.ID == msg.ID {
+			if m.AuthorID != msg.AuthorID {
+				return ErrNotAllowed
+			}
+
+			h.msgCount--
+
+			count := h.msgCount
+
+			for i := h.current; count > 0; i-- {
+				old := i + 1
+				if old == 100 {
+					old = 0
+				}
+
+				if i == 255 {
+					i = 99
+				}
+
+				if h.msgs[i].ID == msg.ID {
+					continue
+				}
+
+				h.msgs[i] = h.msgs[old]
+
+				count--
+			}
+
+			return nil
+		}
+	}
+
+	return nil
 }

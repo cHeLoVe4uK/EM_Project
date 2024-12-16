@@ -90,10 +90,7 @@ func (s *Service) newRoom(chat models.Chat) (*Room, error) {
 // Запускает работу чат-комнаты
 func (r *Room) Run(ctx context.Context) {
 
-	log := logging.WithAttrs(
-		ctx,
-		logging.String("room_id", r.ID),
-	)
+	log := logging.L(r.roomCtx)
 
 	for {
 		select {
@@ -371,6 +368,49 @@ func (r *Room) StashHistory(ctx context.Context) error {
 	r.History.MarkReaded()
 
 	log.Info("history stashed successfully")
+
+	return nil
+}
+
+// Обновляет содержимое сообщения в базе и в истории, если это сообщение там находится
+func (r *Room) UpdateMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("stash history before update")
+
+	if err := r.StashHistory(ctx); err != nil {
+		return err
+	}
+
+	if err := r.msgService.UpdateMessageContent(ctx, msg); err != nil {
+		return err
+	}
+
+	go func() {
+		_ = r.History.UpdateMessage(ctx, msg)
+	}()
+
+	return nil
+}
+
+func (r *Room) DeleteMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("stash history before delete")
+
+	if err := r.StashHistory(ctx); err != nil {
+		return err
+	}
+
+	if err := r.msgService.DeleteMessage(ctx, msg); err != nil {
+		return err
+	}
+
+	go func() {
+		log.Debug("delete message from history")
+
+		_ = r.History.DeleteMessage(ctx, msg)
+	}()
 
 	return nil
 }
