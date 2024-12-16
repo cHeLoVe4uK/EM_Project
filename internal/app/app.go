@@ -99,6 +99,7 @@ func (a *App) initLogger(_ context.Context) error {
 }
 
 func (a *App) initRepos(ctx context.Context) error {
+	log := logging.L(ctx)
 
 	repoType := os.Getenv("REPO_TYPE")
 
@@ -135,10 +136,13 @@ func (a *App) initRepos(ctx context.Context) error {
 		a.msgRepo = msgRepoMemory.New()
 	}
 
+	log.Info("repositories initialized", logging.String("repo_type", repoType))
+
 	return nil
 }
 
 func (a *App) initMongo(ctx context.Context) error {
+	log := logging.L(ctx)
 
 	mongoDSN := os.Getenv("MONGO_DSN")
 
@@ -148,6 +152,8 @@ func (a *App) initMongo(ctx context.Context) error {
 	}
 
 	a.mongo = client
+
+	log.Info("connected to MongoDB")
 
 	return nil
 }
