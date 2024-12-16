@@ -27,25 +27,41 @@ func (a *API) CreateChat(c echo.Context) error {
 		logging.String("op", "CreateChat"),
 	)
 
+	ctx := logging.ContextWithLogger(c.Request().Context(), log)
+
 	var req CreateChatRequest
 
-	log.Debug("binding request")
+	log.Debug("bind request")
 
 	if err := c.Bind(&req); err != nil {
+		log.Warn("bind request", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
+
+	log.Debug("create chat model")
 
 	chat, err := models.NewChat(req.Name)
 	if err != nil {
+		log.Warn("create chat model", logging.Err(err))
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err)
 	}
 
-	chatId, err := a.chatService.CreateChat(c.Request().Context(), chat)
+	log = logging.WithAttrs(
+		ctx,
+		logging.String("chat_id", chat.ID),
+		logging.String("chat_name", chat.Name),
+	)
+
+	ctx = logging.ContextWithLogger(ctx, log)
+
+	chatId, err := a.chatService.CreateChat(ctx, chat)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("chat created", logging.String("chat_id", chatId))
+	log.Debug("chat created")
 
 	resp := CreateChatResponse{
 		ID: chatId,
