@@ -91,9 +91,15 @@ func (a *App) initLogger(_ context.Context) error {
 			logging.WithSource(true),
 			logging.WithLogstash(withLogstash, logstash),
 		)
+		if withLogstash {
+			log = logging.WithAttrs(
+				context.Background(),
+				logging.String("logstash_url", logstash),
+			)
+		}
 	}
 
-	log.Info("logger initialized", "env", env)
+	log.Info("logger initialized", logging.String("env", env))
 
 	return nil
 }
