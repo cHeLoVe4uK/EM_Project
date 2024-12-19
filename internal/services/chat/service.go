@@ -425,6 +425,9 @@ func (s *Service) stop(cancel context.CancelFunc) {
 					)
 
 					r.Manager.Close <- struct{}{}
+					s.mu.Lock()
+					delete(s.ActiveChats, r.ID)
+					s.mu.Unlock()
 				}
 			}
 		}
