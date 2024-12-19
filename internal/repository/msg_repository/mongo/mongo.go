@@ -2,8 +2,10 @@ package mongo
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/repository/msg_repository"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -71,4 +73,68 @@ func (r *Repository) GetChatMessages(ctx context.Context, chatID string) ([]mode
 	}
 
 	return ToMessageBatch(out), nil
+}
+
+func (r *Repository) Update(ctx context.Context, msg models.Message) error {
+
+	var repoMsg Message
+
+	if err := r.collection.FindOne(ctx, bson.M{"id": msg.ID}).Decode(&repoMsg); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			return msg_repository.ErrMessageNotFound
+		}
+
+		return err
+	}
+
+	if msg.AuthorID != repoMsg.AuthorID {
+		return msg_repository.ErrNotAllowed
+	}
+
+	filter := bson.M{"id": msg.ID}
+
+	update := bson.M{"$set": bson.M{"content": msg.Content, "is_edited": msg.IsEdited}}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			return msg_repository.ErrMessageNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) Delete(ctx context.Context, msg models.Message) error {
+
+	var repoMsg Message
+
+	if err := r.collection.FindOne(ctx, bson.M{"id": msg.ID}).Decode(&repoMsg); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			return msg_repository.ErrMessageNotFound
+		}
+
+		return err
+	}
+
+	if msg.AuthorID != repoMsg.AuthorID {
+		return msg_repository.ErrNotAllowed
+	}
+
+	filter := bson.M{"id": msg.ID}
+
+	_, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			return msg_repository.ErrMessageNotFound
+		}
+		return err
+	}
+
+	return nil
 }

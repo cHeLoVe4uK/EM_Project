@@ -24,6 +24,9 @@ var (
 	ErrChatAlreadyExists = errors.New("chat already exists")
 
 	ErrClientNotAvailable = errors.New("client not available")
+
+	ErrMessageNotFound = errors.New("message not found")
+	ErrNotAllowed      = errors.New("not allowed")
 )
 
 var upgrader = websocket.Upgrader{
@@ -46,6 +49,8 @@ const (
 type MessageService interface {
 	GetChatMessages(ctx context.Context, chatID string) ([]models.Message, error)
 	SaveMessages(ctx context.Context, messages []models.Message) error
+	UpdateMessageContent(ctx context.Context, msg models.Message) error
+	DeleteMessage(ctx context.Context, msg models.Message) error
 }
 
 // Интерфейс репозитория чатов
@@ -238,6 +243,58 @@ func (s *Service) GetMessages(ctx context.Context, chatID string) ([]models.Mess
 	return msgs, nil
 }
 
+// Обновление содержимого сообщения в чате
+func (s *Service) UpdateMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("search for room")
+
+	chat, ok := s.ActiveChats[msg.ChatID]
+	if !ok {
+		log.Debug("room is not active. update directly from repository")
+
+		if err := s.msgService.UpdateMessageContent(ctx, msg); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	log.Debug("room is active. update from room")
+
+	if err := chat.UpdateMessage(ctx, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Удаление сообщения из чата
+func (s *Service) DeleteMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("search for room")
+
+	chat, ok := s.ActiveChats[msg.ChatID]
+	if !ok {
+		log.Debug("room is not active. delete directly from repository")
+
+		if err := s.msgService.DeleteMessage(ctx, msg); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	log.Debug("room is active. delete from room")
+
+	if err := chat.DeleteMessage(ctx, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Подключает клиента к чату по ID
 func (s *Service) ConnectByID(
 	w http.ResponseWriter,
@@ -311,7 +368,7 @@ func (s *Service) ConnectByID(
 
 	client.ChatRoom = room
 
-	if err := client.StartSession(r.Context()); err != nil {
+	if err := client.StartSession(ctx); err != nil {
 
 		room.Kick(client)
 
@@ -368,6 +425,9 @@ func (s *Service) stop(cancel context.CancelFunc) {
 					)
 
 					r.Manager.Close <- struct{}{}
+					s.mu.Lock()
+					delete(s.ActiveChats, r.ID)
+					s.mu.Unlock()
 				}
 			}
 		}

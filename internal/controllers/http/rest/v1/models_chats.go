@@ -24,3 +24,7 @@ type Message struct {
 	IsEdited   bool      `json:"is_edited" example:"false"`
 	CreatedAt  time.Time `json:"created_at" example:"2022-05-01T00:00:00Z"`
 }
+
+type UpdateChatRequest struct {
+	Content string `json:"content" example:"message body" validate:"required"`
+}

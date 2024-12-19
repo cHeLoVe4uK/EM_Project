@@ -47,13 +47,13 @@ func (c *Client) StartSession(ctx context.Context) error {
 	log.Info("start new session")
 
 	gr, grctx := errgroup.WithContext(ctx)
+	defer grctx.Done()
 
 	gr.Go(c.read)
 	gr.Go(c.write)
 
 	if err := gr.Wait(); err != nil {
 		log.Info("session closed")
-		grctx.Done()
 
 		return err
 	}
@@ -135,12 +135,18 @@ func (c *Client) write() error {
 	for {
 		_, text, err := c.conn.ReadMessage()
 		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+
+				log.Info("close connection")
+				c.ChatRoom.Manager.Logout <- c
+				return nil
+			}
 
 			log.Error(
 				"read message",
 				logging.Any("error", err),
 			)
-			break
+			return err
 		}
 
 		msg := &MessageDTO{}
@@ -158,8 +164,6 @@ func (c *Client) write() error {
 
 		c.ChatRoom.Broadcast <- NewMessage(c, msg.Content)
 	}
-
-	return nil
 }
 
 // Отаправляет сообщение клиенту

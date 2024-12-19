@@ -19,6 +19,8 @@ type ChatService interface {
 	CreateChat(ctx context.Context, chat models.Chat) (string, error)
 
 	GetMessages(ctx context.Context, chatID string) ([]models.Message, error)
+	UpdateMessage(ctx context.Context, msg models.Message) error
+	DeleteMessage(ctx context.Context, msg models.Message) error
 }
 
 type UserService interface {

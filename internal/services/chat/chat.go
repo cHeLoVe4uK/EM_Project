@@ -90,10 +90,7 @@ func (s *Service) newRoom(chat models.Chat) (*Room, error) {
 // Запускает работу чат-комнаты
 func (r *Room) Run(ctx context.Context) {
 
-	log := logging.WithAttrs(
-		ctx,
-		logging.String("room_id", r.ID),
-	)
+	log := logging.L(r.roomCtx)
 
 	for {
 		select {
@@ -240,6 +237,15 @@ func (r *Room) Add(client *Client) {
 			logging.Err(err),
 		)
 	}
+
+	msg := fmt.Sprintf("%s has been joined chat!", r.Name)
+	if err := r.SendSystemMessage(msg); err != nil {
+		log.Warn(
+			"send system message",
+			logging.Err(err),
+		)
+	}
+
 }
 
 // Убирает клиента из чата при выходе
@@ -259,30 +265,13 @@ func (r *Room) Stop() {
 
 	log.Info("recieve signal to close chat room")
 
-	systemMsg := MessageDTO{
-		ID:         uuid.NewString(),
-		AuthorName: "System",
-		ChatID:     r.ID,
-		Content:    "Room closed",
-		IsEdited:   false,
-		CreatedAt:  time.Now().UTC(),
-	}
+	r.saveMsgsChan <- struct{}{}
 
-	data, err := systemMsg.Render()
-	if err != nil {
-		log.Error(
-			"render system message",
+	if err := r.SendSystemMessage("Chat room is closed!"); err != nil {
+		log.Warn(
+			"send system message",
 			logging.Err(err),
 		)
-	}
-
-	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
-	if err != nil {
-		log.Error(
-			"prepare system message",
-			logging.Err(err),
-		)
-		return
 	}
 
 	for client := range r.ActiveUsers {
@@ -296,23 +285,14 @@ func (r *Room) Stop() {
 		r.Manager.Kick <- client
 
 		go func() {
-
-			defer func() {
-				if err := client.conn.Close(); err != nil {
-					log.Warn(
-						"close connection",
-						logging.Err(err),
-					)
-				}
-			}()
-
-			_ = client.Send(pm)
-
+			if err := client.conn.Close(); err != nil {
+				log.Warn(
+					"close connection",
+					logging.Err(err),
+				)
+			}
 		}()
-
 	}
-
-	r.saveMsgsChan <- struct{}{}
 
 	// TODO: Save users state for chat to repo
 
@@ -371,6 +351,78 @@ func (r *Room) StashHistory(ctx context.Context) error {
 	r.History.MarkReaded()
 
 	log.Info("history stashed successfully")
+
+	return nil
+}
+
+// Отправляет системное сообщение всем пользователям чата
+func (r *Room) SendSystemMessage(msg string) error {
+	systemMsg := MessageDTO{
+		ID:         uuid.NewString(),
+		AuthorName: "System",
+		ChatID:     r.ID,
+		Content:    msg,
+		IsEdited:   false,
+		CreatedAt:  time.Now().UTC(),
+	}
+
+	data, err := systemMsg.Render()
+	if err != nil {
+		return err
+	}
+
+	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, data)
+	if err != nil {
+		return err
+	}
+
+	for client := range r.ActiveUsers {
+
+		_ = client.Send(pm)
+	}
+
+	return nil
+}
+
+// Обновляет содержимое сообщения в базе и в истории, если это сообщение там находится
+func (r *Room) UpdateMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("stash history before update")
+
+	if err := r.StashHistory(ctx); err != nil {
+		return err
+	}
+
+	if err := r.msgService.UpdateMessageContent(ctx, msg); err != nil {
+		return err
+	}
+
+	go func() {
+		_ = r.History.UpdateMessage(ctx, msg)
+	}()
+
+	return nil
+}
+
+func (r *Room) DeleteMessage(ctx context.Context, msg models.Message) error {
+	log := logging.L(ctx)
+
+	log.Debug("stash history before delete")
+
+	if err := r.StashHistory(ctx); err != nil {
+		return err
+	}
+
+	if err := r.msgService.DeleteMessage(ctx, msg); err != nil {
+		return err
+	}
+
+	go func() {
+		log.Debug("delete message from history")
+
+		_ = r.History.DeleteMessage(ctx, msg)
+	}()
 
 	return nil
 }

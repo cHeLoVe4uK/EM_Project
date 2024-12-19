@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cHeLoVe4uK/EM_Project/internal/models"
+	"github.com/cHeLoVe4uK/EM_Project/internal/repository/msg_repository"
 )
 
 type Repository struct {
@@ -52,4 +53,42 @@ func (r *Repository) GetChatMessages(ctx context.Context, chatID string) ([]mode
 	}
 
 	return chat, nil
+}
+
+func (r *Repository) Update(ctx context.Context, msg models.Message) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	chat, ok := r.messages[msg.ChatID]
+	if !ok {
+		return nil
+	}
+
+	for i, m := range chat {
+		if m.ID == msg.ID {
+			r.messages[msg.ChatID][i] = msg
+			return nil
+		}
+	}
+
+	return msg_repository.ErrMessageNotFound
+}
+
+func (r *Repository) Delete(ctx context.Context, msg models.Message) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	chat, ok := r.messages[msg.ChatID]
+	if !ok {
+		return nil
+	}
+
+	for i, m := range chat {
+		if m.ID == msg.ID {
+			r.messages[msg.ChatID] = append(chat[:i], chat[i+1:]...)
+			return nil
+		}
+	}
+
+	return msg_repository.ErrMessageNotFound
 }
