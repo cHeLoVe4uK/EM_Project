@@ -38,7 +38,7 @@ var upgrader = websocket.Upgrader{
 }
 
 const (
-	closeCheck     = 60 * time.Minute
+	closeCheck     = 60 * time.Hour
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
@@ -418,16 +418,20 @@ func (s *Service) stop(cancel context.CancelFunc) {
 
 			for _, r := range s.ActiveChats {
 				if len(r.ActiveUsers) == 0 {
+					log := logging.WithAttrs(
+						s.ctx,
+						logging.String("room_id", r.ID),
+					)
 
 					log.Debug(
 						"found inactive room, closing",
-						logging.String("room_id", r.ID),
 					)
 
 					r.Manager.Close <- struct{}{}
 					s.mu.Lock()
 					delete(s.ActiveChats, r.ID)
 					s.mu.Unlock()
+					log.Info("room closed successfully")
 				}
 			}
 		}

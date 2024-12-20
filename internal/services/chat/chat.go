@@ -13,6 +13,11 @@ import (
 	"github.com/meraiku/logging"
 )
 
+const (
+	// Период сохранения истории чата
+	historyStashPeriod = 10 * time.Minute
+)
+
 // Чат-комната
 type Room struct {
 	models.Chat
@@ -30,6 +35,7 @@ type Room struct {
 	msgService MessageService
 
 	roomCtx context.Context
+	stop    context.CancelFunc
 	mu      sync.RWMutex
 }
 
@@ -67,7 +73,9 @@ func (s *Service) newRoom(chat models.Chat) (*Room, error) {
 
 	ctx = logging.ContextWithLogger(ctx, log)
 
+	ctx, cancel := context.WithCancel(ctx)
 	r.roomCtx = ctx
+	r.stop = cancel
 
 	log.Debug("read message history")
 
@@ -260,6 +268,7 @@ func (r *Room) Kick(client *Client) {
 
 // Останавливает работу чат-комнаты
 func (r *Room) Stop() {
+	defer r.stop()
 
 	log := logging.L(r.roomCtx)
 
@@ -300,13 +309,17 @@ func (r *Room) Stop() {
 
 // Воркер, который слушает события и сохраняет историю чата в репозиторий
 func (r *Room) controlHistory(saveChan chan struct{}) {
-	tick := time.NewTicker(10 * time.Minute)
+	tick := time.NewTicker(historyStashPeriod)
 	defer tick.Stop()
 
 	log := logging.L(r.roomCtx)
 
 	for {
 		select {
+		case <-r.roomCtx.Done():
+			log.Debug("room context closed, stopping history worker")
+
+			return
 		case <-tick.C:
 
 			log.Debug("stash history by timer")
