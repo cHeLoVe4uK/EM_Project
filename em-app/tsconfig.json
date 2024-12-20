@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "esnext",                          // Целевая версия JavaScript
+    "module": "esnext",                          // Модульная система для работы с ES-модулями
+    "moduleResolution": "node",                  // Для совместимости с Node.js и пакетами
+    "strict": true,                              // Включает все строгие проверки типов
+    "esModuleInterop": true,                     // Для совместимости с модулями CommonJS
+    "skipLibCheck": true,                        // Пропуск проверок типов библиотек для ускорения сборки
+    "forceConsistentCasingInFileNames": true,    // Требует согласованности в регистрах имен файлов
+    "jsx": "react-jsx",                          // Использование нового синтаксиса JSX для React 17+
+    "resolveJsonModule": true,                   // Поддержка импорта JSON файлов
+    "allowJs": true,                             // Разрешает использовать JavaScript файлы
+    "noImplicitAny": true,                       // Предупреждает о неявных типах "any"
+    "skipDefaultLibCheck": true                  // Пропускать проверку стандартных библиотек
+  },
+  "include": [
+    "src/**/*"                                   // Включает все файлы в папке src
+  ],
+  "exclude": [
+    "node_modules",                              // Исключает node_modules
+    "build"                                      // Исключает папку сборки
+  ]
+}
