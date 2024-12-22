@@ -246,7 +246,7 @@ func (r *Room) Add(client *Client) {
 		)
 	}
 
-	msg := fmt.Sprintf("%s has been joined chat!", r.Name)
+	msg := fmt.Sprintf("%s has been joined chat!", client.Username)
 	if err := r.SendSystemMessage(msg); err != nil {
 		log.Warn(
 			"send system message",
